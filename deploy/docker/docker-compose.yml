@@ -1,0 +1,100 @@
+version: '3.8'
+
+networks:
+  document_agent_net:
+    driver: bridge
+
+# 顶层声明 secrets
+secrets:
+  db_root_password:
+    # 指向包含密码的外部文件
+    file: ./mysql_root_password.txt
+
+services:
+  # API 服务
+  usercenter-api:
+    image: chegangan/document-agent-usercenter-api:1.0
+    build:
+      context: ../../
+      dockerfile: app/usercenter/cmd/api/dockerfile
+    container_name: usercenter-api
+    ports:
+      - "8000:8000"
+    networks:
+      - document_agent_net
+    depends_on:
+      - usercenter-rpc
+      - etcd
+    environment:
+      - TZ=Asia/Shanghai
+
+  # RPC 服务
+  usercenter-rpc:
+    image: chegangan/document-agent-usercenter-rpc:1.0
+    build:
+      context: ../../
+      dockerfile: app/usercenter/cmd/rpc/dockerfile
+    container_name: usercenter-rpc
+    # ports:
+    #   - "8001:8001"
+    networks:
+      - document_agent_net
+    depends_on:
+      - mysql
+      - etcd
+    environment:
+      - TZ=Asia/Shanghai
+
+  # MySQL 服务
+  mysql:
+    image: mysql/mysql-server:8.0.28
+    container_name: mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - document_agent_net
+    environment:
+      # 这个路径是镜像中默认secrets的路径，运行时存在内存中，降低被泄露的风险
+      - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/db_root_password
+      - TZ=Asia/Shanghai
+    volumes:
+      - ../sql/document_agent_usercenter.sql:/docker-entrypoint-initdb.d/init.sql
+      - mysql-data:/var/lib/mysql
+    command: 
+      --character-set-server=utf8mb4 
+      --collation-server=utf8mb4_unicode_ci 
+      --default-time-zone=Asia/Shanghai
+    # 在服务中引用顶层 secret
+    secrets:
+      - db_root_password
+
+
+  # Redis 服务
+  redis:
+    image: redis:6.2.5
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - document_agent_net
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - redis-data:/data
+
+  # etcd 服务
+  etcd:
+    image: bitnami/etcd:3.5.15
+    container_name: etcd
+    # ports:
+    #   - "2379:2379"
+    #   - "2380:2380"
+    networks:
+      - document_agent_net
+    environment:
+      - ALLOW_NONE_AUTHENTICATION=yes
+      - ETCD_ADVERTISE_CLIENT_URLS=http://etcd:2379
+
+volumes:
+  mysql-data:
+  redis-data:
