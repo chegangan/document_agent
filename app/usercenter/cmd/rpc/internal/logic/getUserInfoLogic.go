@@ -2,6 +2,7 @@ package logic
 
 import (
 	"context"
+	"fmt"
 
 	"document_agent/app/usercenter/cmd/rpc/internal/svc"
 	"document_agent/app/usercenter/cmd/rpc/pb"
@@ -10,7 +11,6 @@ import (
 	"document_agent/pkg/xerr"
 
 	"github.com/jinzhu/copier"
-	"github.com/pkg/errors"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
@@ -32,10 +32,10 @@ func (l *GetUserInfoLogic) GetUserInfo(in *pb.GetUserInfoReq) (*pb.GetUserInfoRe
 
 	user, err := l.svcCtx.UserModel.FindOne(l.ctx, in.Id)
 	if err != nil && err != model.ErrNotFound {
-		return nil, errors.Wrapf(xerr.NewErrCode(xerr.DB_ERROR), "GetUserInfo find user db err , id:%d , err:%v", in.Id, err)
+		return nil, fmt.Errorf("GetUserInfo find user db err, id:%d, err:%v: %w", in.Id, err, xerr.ErrDbError)
 	}
 	if user == nil {
-		return nil, errors.Wrapf(xerr.NewErrCode(xerr.UserNotFound), "id:%d", in.Id)
+		return nil, fmt.Errorf("id:%d: %w", in.Id, xerr.ErrUserNotFound)
 	}
 	var respUser usercenter.User
 	_ = copier.Copy(&respUser, user)

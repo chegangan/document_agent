@@ -10,6 +10,7 @@ require (
 require (
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/jinzhu/copier v0.4.0
+	github.com/zeromicro/x v0.0.0-20240408115609-8224c482b07e
 	google.golang.org/grpc v1.73.0
 	google.golang.org/protobuf v1.36.6
 )

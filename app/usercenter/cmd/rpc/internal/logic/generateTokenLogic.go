@@ -2,6 +2,7 @@ package logic
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"document_agent/app/usercenter/cmd/rpc/internal/svc"
@@ -10,7 +11,6 @@ import (
 	"document_agent/pkg/xerr"
 
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/pkg/errors"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
@@ -33,7 +33,7 @@ func (l *GenerateTokenLogic) GenerateToken(in *pb.GenerateTokenReq) (*pb.Generat
 	accessExpire := l.svcCtx.Config.JwtAuth.AccessExpire
 	accessToken, err := l.getJwtToken(l.svcCtx.Config.JwtAuth.AccessSecret, now, accessExpire, in.UserId)
 	if err != nil {
-		return nil, errors.Wrapf(xerr.NewErrCode(xerr.GenerateTokenError), "getJwtToken err userId:%d , err:%v", in.UserId, err)
+		return nil, fmt.Errorf("getJwtToken err userId:%d, err:%v: %w", in.UserId, err, xerr.ErrGenerateToken)
 	}
 
 	return &pb.GenerateTokenResp{

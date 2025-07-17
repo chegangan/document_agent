@@ -2,6 +2,7 @@ package logic
 
 import (
 	"context"
+	"fmt"
 
 	"document_agent/app/usercenter/cmd/rpc/internal/svc"
 	"document_agent/app/usercenter/cmd/rpc/usercenter"
@@ -9,7 +10,6 @@ import (
 	"document_agent/pkg/tool"
 	"document_agent/pkg/xerr"
 
-	"github.com/pkg/errors"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
@@ -31,14 +31,15 @@ func (l *LoginLogic) loginByMobile(mobile, password string) (int64, error) {
 
 	user, err := l.svcCtx.UserModel.FindOneByMobile(l.ctx, mobile)
 	if err != nil && err != model.ErrNotFound {
-		return 0, errors.Wrapf(xerr.NewErrCode(xerr.DB_ERROR), "根据手机号查询用户信息失败，mobile:%s,err:%v", mobile, err)
+		return 0, fmt.Errorf("根据手机号查询用户信息失败，mobile:%s, err:%v: %w", mobile, err, xerr.ErrDbError)
 	}
+
 	if user == nil {
-		return 0, errors.Wrapf(xerr.NewErrCode(xerr.UserNotFound), "mobile:%s", mobile)
+		return 0, fmt.Errorf("mobile: %s: %w", mobile, xerr.ErrUserNotFound)
 	}
 
 	if !(tool.Md5ByString(password) == user.Password) {
-		return 0, errors.Wrap(xerr.NewErrCode(xerr.UserPasswordError), "密码匹配出错")
+		return 0, fmt.Errorf("密码匹配出错: %w", xerr.ErrUserPassword)
 	}
 
 	return user.Id, nil
@@ -59,7 +60,7 @@ func (l *LoginLogic) Login(in *usercenter.LoginReq) (*usercenter.LoginResp, erro
 		UserId: userId,
 	})
 	if err != nil {
-		return nil, errors.Wrapf(xerr.NewErrCode(xerr.GenerateTokenError), "GenerateToken userId : %d", userId)
+		return nil, fmt.Errorf("GenerateToken userId : %d: %w", userId, xerr.ErrGenerateToken)
 	}
 
 	return &usercenter.LoginResp{

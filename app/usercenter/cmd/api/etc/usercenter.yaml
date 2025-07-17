@@ -1,7 +1,7 @@
 Name: usercenter
 Host: 0.0.0.0
 Port: 8000
-Mode: pro
+Mode: dev
 
 Log:
   ServiceName: usercenter-api
@@ -15,6 +15,6 @@ JwtAuth:
 UsercenterRpcConf:
   Etcd:
     Hosts:
-      - etcd:2379
+      - localhost:2379
     Key: usercenter.rpc
   NonBlock: true

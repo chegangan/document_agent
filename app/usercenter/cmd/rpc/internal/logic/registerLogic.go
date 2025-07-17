@@ -2,6 +2,7 @@ package logic
 
 import (
 	"context"
+	"fmt"
 
 	"document_agent/app/usercenter/cmd/rpc/internal/svc"
 	"document_agent/app/usercenter/cmd/rpc/usercenter"
@@ -9,7 +10,6 @@ import (
 	"document_agent/pkg/tool"
 	"document_agent/pkg/xerr"
 
-	"github.com/pkg/errors"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
@@ -30,15 +30,15 @@ func NewRegisterLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Register
 func (l *RegisterLogic) Register(in *usercenter.RegisterReq) (*usercenter.RegisterResp, error) {
 
 	if len(in.Mobile) != 11 {
-		return nil, errors.Wrapf(xerr.NewErrCode(xerr.InvalidParameter), "Register mobile:%s is not a valid mobile number", in.Mobile)
+		return nil, fmt.Errorf("Register mobile:%s is not a valid mobile number: %w", in.Mobile, xerr.ErrInvalidParameter)
 	}
 
 	user1, err := l.svcCtx.UserModel.FindOneByMobile(l.ctx, in.Mobile)
 	if err != nil && err != model.ErrNotFound {
-		return nil, errors.Wrapf(xerr.NewErrCode(xerr.DB_ERROR), "mobile:%s,err:%v", in.Mobile, err)
+		return nil, fmt.Errorf("mobile:%s, err:%v: %w", in.Mobile, err, xerr.ErrDbError)
 	}
 	if user1 != nil {
-		return nil, errors.Wrapf(xerr.NewErrCode(xerr.UserAlreadyExists), "Register user exists mobile:%s,err:%v", in.Mobile, err)
+		return nil, fmt.Errorf("Register user exists mobile:%s: %w", in.Mobile, xerr.ErrUserAlreadyExists)
 	}
 
 	user := new(model.User)
@@ -51,11 +51,11 @@ func (l *RegisterLogic) Register(in *usercenter.RegisterReq) (*usercenter.Regist
 	}
 	insertResult, err := l.svcCtx.UserModel.Insert(l.ctx, user)
 	if err != nil {
-		return nil, errors.Wrapf(xerr.NewErrCode(xerr.DB_ERROR), "Register db user Insert err:%v,user:%+v", err, user)
+		return nil, fmt.Errorf("Register db user Insert err:%v, user:%+v: %w", err, user, xerr.ErrDbError)
 	}
 	userId, err := insertResult.LastInsertId()
 	if err != nil {
-		return nil, errors.Wrapf(xerr.NewErrCode(xerr.DB_ERROR), "Register db user insertResult.LastInsertId err:%v,user:%+v", err, user)
+		return nil, fmt.Errorf("Register db user insertResult.LastInsertId err:%v, user:%+v: %w", err, user, xerr.ErrDbError)
 	}
 
 	//2、Generate the token, so that the service doesn't call rpc internally
@@ -64,7 +64,7 @@ func (l *RegisterLogic) Register(in *usercenter.RegisterReq) (*usercenter.Regist
 		UserId: userId,
 	})
 	if err != nil {
-		return nil, errors.Wrapf(xerr.NewErrCode(xerr.GenerateTokenError), "GenerateToken userId : %d", userId)
+		return nil, fmt.Errorf("GenerateToken userId: %d: %w", userId, xerr.ErrGenerateToken)
 	}
 
 	return &usercenter.RegisterResp{
