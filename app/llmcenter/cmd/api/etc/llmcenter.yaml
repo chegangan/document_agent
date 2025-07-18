@@ -1,0 +1,20 @@
+Name: llmcenter
+Host: 0.0.0.0
+Port: 8010
+Mode: dev
+
+Log:
+  ServiceName: llmcenter-api
+  Level: error
+
+#jwtAuth
+JwtAuth:
+  AccessSecret: I8qLdnSA6N66rdYzBkZE5KjjK1M2keM9EzxVL97533g=
+
+# rpc 配置
+LlmcenterRpcConf:
+  Etcd:
+    Hosts:
+      - localhost:2379
+    Key: llmcenter.rpc
+  NonBlock: true

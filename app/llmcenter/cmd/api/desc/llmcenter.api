@@ -1,0 +1,113 @@
+syntax = "v1"
+
+info (
+	title:   "大语言模型中心服务"
+	desc:    "LLM Center 的 API 定义, 包含聊天、文件管理和历史记录功能"
+	author:  "Chegan"
+	email:   "chegangan123@gmail.com"
+	version: "v1"
+)
+
+import (
+	"llm/llm.api"
+)
+
+// ================== 接口请求与响应 (Requests & Responses) ==================
+// --- 聊天接口 ---
+type ChatCompletionsRequest {
+	ConversationID   string      `json:"conversation_id,optional"` // 可选, 现有会话ID。如果为空，后端将创建新会话
+	Prompt           string      `json:"prompt"` // 必选, 用户输入的文本内容
+	UseKnowledgeBase bool        `json:"use_knowledge_base,optional"` // 可选, 是否使用自定义知识库
+	KnowledgeBaseID  string      `json:"knowledge_base_id,optional"` // 可选, 如果 use_knowledge_base 为 true, 则需要提供知识库ID
+	References       []Reference `json:"references,optional"` // 可选, 引用列表
+}
+
+// ChatCompletionsResponse 为空, 因为此接口使用 SSE 流式响应。
+// 后端逻辑 (logic) 需要直接操作 http.ResponseWriter 来发送流式事件。
+// 可能发送的事件数据结构包括: SSEMessageEvent, SSEInterruptEvent, SSEEndEvent。
+type ChatCompletionsResponse {}
+
+// --- 继续聊天流程接口 ---
+type ChatResumeRequest {
+	ConversationID string `json:"conversation_id"` // 必选, 当前会话的ID
+	Content        string `json:"content"` // 必选, 用户在前端编辑器中确认后的完整内容
+	TemplateID     string `json:"template_id,optional"` // 可选, 如果用户在这一步选择了模板
+}
+
+// ChatResumeResponse 为空, 因为此接口同样使用 SSE 流式响应。
+// 后端逻辑 (logic) 将直接推送 SSEMessageEvent 和 SSEEndEvent 事件。
+type ChatResumeResponse {}
+
+// --- 文件上传接口 ---
+// 请求体格式为 multipart/form-data, 文件字段的键 (key) 为 "file"。
+// 在 logic 代码中需要手动处理文件解析: r.ParseMultipartForm() 和 r.FormFile("file")。
+type FileUploadRequest {}
+
+// 这里需要写一个定时清除file的函数，同时也清除数据库的id
+type FileUploadResponse {
+	FileID   string `json:"file_id"` // 后端生成的唯一文件ID
+	FileName string `json:"file_name"` // 原始文件名
+	URL      string `json:"url,optional"` // 文件的可访问URL
+	Message  string `json:"message"` // 成功消息
+}
+
+// --- 历史记录接口 ---
+type GetConversationsRequest {}
+
+type GetConversationsResponse {
+	Data []Conversation `json:"data"` // 会话列表
+}
+
+type GetConversationDetailRequest {
+	ConversationID string `path:"conversation_id"` // 从 URL 路径中获取会话ID
+}
+
+type GetConversationDetailResponse {
+	ConversationID string    `json:"conversation_id"`
+	Title          string    `json:"title"`
+	History        []Message `json:"history"` // 详细消息历史
+}
+
+// ================== 服务定义 (Service Definition) ==================
+// 所有接口都需要 JWT 认证
+@server (
+	prefix: /llmcenter/v1
+	group:  chat
+	jwt:    Auth
+)
+service llmcenter {
+	@doc "发起新对话或在现有对话中发送消息"
+	@handler chatCompletions
+	post /chat/completions (ChatCompletionsRequest) returns (ChatCompletionsResponse)
+
+	@doc "在工作流中断后, 发送用户编辑好的内容以继续流程"
+	@handler chatResume
+	post /chat/resume (ChatResumeRequest) returns (ChatResumeResponse)
+}
+
+@server (
+	prefix: /llmcenter/v1
+	group:  file
+	jwt:    Auth
+)
+service llmcenter {
+	@doc "上传文件, 用于后续对话"
+	@handler fileUpload
+	post /files/upload (FileUploadRequest) returns (FileUploadResponse)
+}
+
+@server (
+	prefix: /llmcenter/v1
+	group:  conversation
+	jwt:    Auth
+)
+service llmcenter {
+	@doc "获取当前用户的会话列表"
+	@handler getConversations
+	get /conversations (GetConversationsRequest) returns (GetConversationsResponse)
+
+	@doc "获取指定会话的详细历史消息"
+	@handler getConversationDetail
+	get /conversations/:conversation_id (GetConversationDetailRequest) returns (GetConversationDetailResponse)
+}
+

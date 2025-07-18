@@ -31,7 +31,7 @@ func (l *LoginLogic) loginByMobile(mobile, password string) (int64, error) {
 
 	user, err := l.svcCtx.UserModel.FindOneByMobile(l.ctx, mobile)
 	if err != nil && err != model.ErrNotFound {
-		return 0, fmt.Errorf("根据手机号查询用户信息失败，mobile:%s, err:%v: %w", mobile, err, xerr.ErrDbError)
+		return 0, fmt.Errorf("根据手机号查询用户信息失败，mobile:%s, err:%+v: %w", mobile, err, xerr.ErrDbError)
 	}
 
 	if user == nil {

@@ -2,10 +2,7 @@ module document_agent
 
 go 1.23.4
 
-require (
-	github.com/pkg/errors v0.9.1
-	github.com/zeromicro/go-zero v1.8.4
-)
+require github.com/zeromicro/go-zero v1.8.4
 
 require (
 	github.com/golang-jwt/jwt/v4 v4.5.2

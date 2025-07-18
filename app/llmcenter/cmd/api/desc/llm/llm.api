@@ -1,0 +1,55 @@
+syntax = "v1"
+
+info(
+	title: "大模型实例"
+	desc: "大模型实例"
+	author: "Chegan"
+	email: "chegangan123@gmail.com"
+    version: "v1"
+)
+
+
+// ================== 通用数据结构 (Data Structures) ==================
+
+// Reference - 对话中引用的对象
+type Reference {
+	Type   string `json:"type"`    // 引用类型, 例如: "file"
+	FileID string `json:"file_id"` // 文件ID
+}
+
+// Conversation - 会话列表中的单个会话
+type Conversation {
+	ConversationID string `json:"conversation_id"` // 会话ID
+	Title          string `json:"title"`           // 会话标题
+	UpdatedAt      string `json:"updated_at"`      // 更新时间 (RFC3339)
+}
+
+// Message - 单条历史消息
+type Message {
+	ID          string `json:"id"`           // 消息ID
+	Role        string `json:"role"`         // 角色: "user" 或 "assistant"
+	Content     string `json:"content"`      // 消息内容
+	ContentType string `json:"content_type"` // 内容类型, 例如: "text", "document_outline", "final_document"
+	CreatedAt   string `json:"created_at"`   // 创建时间 (RFC3339)
+}
+
+// ================== 流式响应事件 (Server-Sent Events) ==================
+
+// SSEMessageEvent - message 事件的数据体
+type SSEMessageEvent {
+	Chunk string `json:"chunk"` // 流式返回的文本片段
+}
+
+// SSEInterruptEvent - interrupt 事件的数据体
+type SSEInterruptEvent {
+	ConversationID string `json:"conversation_id"`
+	MessageID      string `json:"message_id"`
+	ContentType    string `json:"content_type"` // 内容类型, 例如 "document_outline"
+	Content        string `json:"content"`      // 需要填入编辑器的内容清单
+}
+
+// SSEEndEvent - end 事件的数据体
+type SSEEndEvent {
+	ConversationID string `json:"conversation_id"` // 本次交互所属的会话ID
+	MessageID      string `json:"message_id"`      // 本次交互最终生成的完整消息ID
+}
