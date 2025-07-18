@@ -8,7 +8,6 @@ import (
 	"document_agent/app/usercenter/cmd/rpc/usercenter"
 
 	"github.com/jinzhu/copier"
-	"github.com/pkg/errors"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
@@ -34,7 +33,7 @@ func (l *RegisterLogic) Register(req *types.RegisterReq) (*types.RegisterResp, e
 		Password: req.Password,
 	})
 	if err != nil {
-		return nil, errors.Wrapf(err, "req: %+v", req)
+		return nil, err
 	}
 
 	var resp types.RegisterResp

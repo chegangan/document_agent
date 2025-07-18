@@ -39,7 +39,7 @@ func (l *LoginLogic) loginByMobile(mobile, password string) (int64, error) {
 	}
 
 	if !(tool.Md5ByString(password) == user.Password) {
-		return 0, fmt.Errorf("密码匹配出错: %w", xerr.ErrUserPassword)
+		return 0, fmt.Errorf("密码匹配出错, mobile: %s: %w", mobile, xerr.ErrUserPassword)
 	}
 
 	return user.Id, nil
