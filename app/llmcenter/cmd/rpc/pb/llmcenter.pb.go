@@ -350,6 +350,7 @@ func (*ChatResumeResponse_End) isChatResumeResponse_Event() {}
 // 通常 user_id 从 gRPC 的 metadata (类似 HTTP Header) 中获取，所以请求体为空。
 type GetConversationsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id"` // 可以选择在这里传递 user_id
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -382,6 +383,13 @@ func (x *GetConversationsRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use GetConversationsRequest.ProtoReflect.Descriptor instead.
 func (*GetConversationsRequest) Descriptor() ([]byte, []int) {
 	return file_llmcenter_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *GetConversationsRequest) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
 }
 
 // 响应: 会话列表
@@ -1120,8 +1128,9 @@ const file_llmcenter_proto_rawDesc = "" +
 	"\x12ChatResumeResponse\x126\n" +
 	"\amessage\x18\x01 \x01(\v2\x1a.llmcenter.SSEMessageEventH\x00R\amessage\x12*\n" +
 	"\x03end\x18\x02 \x01(\v2\x16.llmcenter.SSEEndEventH\x00R\x03endB\a\n" +
-	"\x05event\"\x19\n" +
-	"\x17GetConversationsRequest\"G\n" +
+	"\x05event\"2\n" +
+	"\x17GetConversationsRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\"G\n" +
 	"\x18GetConversationsResponse\x12+\n" +
 	"\x04data\x18\x01 \x03(\v2\x17.llmcenter.ConversationR\x04data\"G\n" +
 	"\x1cGetConversationDetailRequest\x12'\n" +
