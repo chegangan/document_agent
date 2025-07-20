@@ -36,10 +36,6 @@ func (s *LlmCenterServer) ChatResume(in *pb.ChatResumeRequest, stream pb.LlmCent
 }
 
 // RPC 方法: FileUpload
-func (s *LlmCenterServer) FileUpload(stream pb.LlmCenter_FileUploadServer) error {
-	l := logic.NewFileUploadLogic(stream.Context(), s.svcCtx)
-	return l.FileUpload(stream)
-}
 
 // RPC 方法: GetConversations
 func (s *LlmCenterServer) GetConversations(ctx context.Context, in *pb.GetConversationsRequest) (*pb.GetConversationsResponse, error) {

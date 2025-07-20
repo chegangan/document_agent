@@ -2,9 +2,12 @@ package conversation
 
 import (
 	"context"
+	"fmt"
 
 	"document_agent/app/llmcenter/cmd/api/internal/svc"
 	"document_agent/app/llmcenter/cmd/api/internal/types"
+	rpcpb "document_agent/app/llmcenter/cmd/rpc/pb"
+	"document_agent/pkg/ctxdata"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -24,8 +27,25 @@ func NewGetConversationsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 	}
 }
 
-func (l *GetConversationsLogic) GetConversations(req *types.GetConversationsRequest) (resp *types.GetConversationsResponse, err error) {
-	// todo: add your logic here and delete this line
+func (l *GetConversationsLogic) GetConversations(req *types.GetConversationsRequest) (*types.GetConversationsResponse, error) {
+	// 调用后端 RPC
+	userId1 := ctxdata.GetUidFromCtx(l.ctx)
+	fmt.Printf("GetConversationsLogic userId: %d\n", userId1)
+	rpcResp, err := l.svcCtx.LlmCenterRpc.GetConversations(l.ctx, &rpcpb.GetConversationsRequest{})
+	if err != nil {
+		l.Logger.Error("RPC GetConversations failed:", err)
+		return nil, err
+	}
 
-	return
+	// 转换到 HTTP types
+	var list []types.Conversation
+	for _, c := range rpcResp.Data {
+		list = append(list, types.Conversation{
+			ConversationID: c.ConversationId,
+			Title:          c.Title,
+			UpdatedAt:      c.UpdatedAt,
+		})
+	}
+
+	return &types.GetConversationsResponse{Data: list}, nil
 }
