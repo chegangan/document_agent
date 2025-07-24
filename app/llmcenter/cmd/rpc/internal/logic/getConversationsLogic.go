@@ -8,7 +8,6 @@ import (
 
 	"document_agent/app/llmcenter/cmd/rpc/internal/svc"
 	"document_agent/app/llmcenter/cmd/rpc/pb"
-	"document_agent/pkg/ctxdata"
 
 	"document_agent/pkg/xerr"
 
@@ -32,9 +31,7 @@ func NewGetConversationsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 // RPC 方法: GetConversations
 func (l *GetConversationsLogic) GetConversations(in *pb.GetConversationsRequest) (*pb.GetConversationsResponse, error) {
 	// 1. 查询所有会话
-	userId1 := ctxdata.GetUidFromCtx(l.ctx)
-	var userIdInt int64 = userId1
-	userId := strconv.FormatInt(userIdInt, 10)
+	userId := strconv.FormatInt(in.UserId, 10)
 
 	convs, err := l.svcCtx.ConversationsModel.FindAllByUser(l.ctx, userId)
 	if err != nil {
@@ -53,9 +50,8 @@ func (l *GetConversationsLogic) GetConversations(in *pb.GetConversationsRequest)
 		})
 	}
 
-	// 3. 如果列表为空，也可以返回自定义错误（可选）
 	if len(list) == 0 {
-		return nil, fmt.Errorf("没有找到任何会话: %w", xerr.ErrDbError)
+		return nil, fmt.Errorf("没有找到任何会话: %w", xerr.ErrConversationNotFound)
 	}
 
 	return &pb.GetConversationsResponse{

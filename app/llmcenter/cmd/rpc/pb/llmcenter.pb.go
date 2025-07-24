@@ -28,11 +28,11 @@ const (
 // 请求: 发起新对话或继续对话
 type ChatCompletionsRequest struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
-	ConversationId   string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id"`          // 可选: 现有会话ID。如果为空，将创建新会话。
-	Prompt           string                 `protobuf:"bytes,2,opt,name=prompt,proto3" json:"prompt"`                                                // 必选: 用户输入的文本内容。
-	UseKnowledgeBase bool                   `protobuf:"varint,3,opt,name=use_knowledge_base,json=useKnowledgeBase,proto3" json:"use_knowledge_base"` // 可选: 是否使用自定义知识库。
-	KnowledgeBaseId  string                 `protobuf:"bytes,4,opt,name=knowledge_base_id,json=knowledgeBaseId,proto3" json:"knowledge_base_id"`     // 可选: 如果 use_knowledge_base 为 true，则需要提供知识库ID。
-	References       []*Reference           `protobuf:"bytes,5,rep,name=references,proto3" json:"references"`                                        // 可选: 引用列表，例如引用的文件。
+	ConversationId   string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`          // 可选: 现有会话ID。如果为空，将创建新会话。
+	Prompt           string                 `protobuf:"bytes,2,opt,name=prompt,proto3" json:"prompt,omitempty"`                                                // 必选: 用户输入的文本内容。
+	UseKnowledgeBase bool                   `protobuf:"varint,3,opt,name=use_knowledge_base,json=useKnowledgeBase,proto3" json:"use_knowledge_base,omitempty"` // 可选: 是否使用自定义知识库。
+	KnowledgeBaseId  string                 `protobuf:"bytes,4,opt,name=knowledge_base_id,json=knowledgeBaseId,proto3" json:"knowledge_base_id,omitempty"`     // 可选: 如果 use_knowledge_base 为 true，则需要提供知识库ID。
+	References       []*Reference           `protobuf:"bytes,5,rep,name=references,proto3" json:"references,omitempty"`                                        // 可选: 引用列表，例如引用的文件。
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -205,9 +205,9 @@ func (*ChatCompletionsResponse_End) isChatCompletionsResponse_Event() {}
 // 请求: 在中断后继续流程
 type ChatResumeRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	ConversationId string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id"` // 必选: 当前会话的ID。
-	Content        string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content"`                                     // 必选: 用户在前端编辑器中确认后的完整内容。
-	TemplateId     string                 `protobuf:"bytes,3,opt,name=template_id,json=templateId,proto3" json:"template_id"`             // 可选: 如果用户在这一步选择了模板。
+	ConversationId string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"` // 必选: 当前会话的ID。
+	Content        string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`                                     // 必选: 用户在前端编辑器中确认后的完整内容。
+	TemplateId     string                 `protobuf:"bytes,3,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`             // 可选: 如果用户在这一步选择了模板。
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -350,6 +350,7 @@ func (*ChatResumeResponse_End) isChatResumeResponse_Event() {}
 // 通常 user_id 从 gRPC 的 metadata (类似 HTTP Header) 中获取，所以请求体为空。
 type GetConversationsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"` // 可以选择在这里传递 user_id
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -384,10 +385,17 @@ func (*GetConversationsRequest) Descriptor() ([]byte, []int) {
 	return file_llmcenter_proto_rawDescGZIP(), []int{4}
 }
 
+func (x *GetConversationsRequest) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
 // 响应: 会话列表
 type GetConversationsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Data          []*Conversation        `protobuf:"bytes,1,rep,name=data,proto3" json:"data"`
+	Data          []*Conversation        `protobuf:"bytes,1,rep,name=data,proto3" json:"data,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -432,7 +440,7 @@ func (x *GetConversationsResponse) GetData() []*Conversation {
 // 请求: 获取单个会话的详细信息
 type GetConversationDetailRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	ConversationId string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id"` // 从路径中获取的会话ID
+	ConversationId string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"` // 从路径中获取的会话ID
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -477,9 +485,9 @@ func (x *GetConversationDetailRequest) GetConversationId() string {
 // 响应: 单个会话的详细信息
 type GetConversationDetailResponse struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	ConversationId string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id"`
-	Title          string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title"`
-	History        []*Message             `protobuf:"bytes,3,rep,name=history,proto3" json:"history"`
+	ConversationId string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`
+	Title          string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	History        []*Message             `protobuf:"bytes,3,rep,name=history,proto3" json:"history,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -622,7 +630,7 @@ func (*FileUploadRequest_Chunk) isFileUploadRequest_Data() {}
 // 消息: 文件元信息
 type FileInfo struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	FileName      string                 `protobuf:"bytes,1,opt,name=file_name,json=fileName,proto3" json:"file_name"` // 原始文件名
+	FileName      string                 `protobuf:"bytes,1,opt,name=file_name,json=fileName,proto3" json:"file_name,omitempty"` // 原始文件名
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -667,10 +675,10 @@ func (x *FileInfo) GetFileName() string {
 // 响应: 文件上传成功
 type FileUploadResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	FileId        string                 `protobuf:"bytes,1,opt,name=file_id,json=fileId,proto3" json:"file_id"`       // 后端生成的唯一文件ID
-	FileName      string                 `protobuf:"bytes,2,opt,name=file_name,json=fileName,proto3" json:"file_name"` // 原始文件名
-	Url           string                 `protobuf:"bytes,3,opt,name=url,proto3" json:"url"`                           // 文件的可访问URL
-	Message       string                 `protobuf:"bytes,4,opt,name=message,proto3" json:"message"`                   // 成功消息
+	FileId        string                 `protobuf:"bytes,1,opt,name=file_id,json=fileId,proto3" json:"file_id,omitempty"`       // 后端生成的唯一文件ID
+	FileName      string                 `protobuf:"bytes,2,opt,name=file_name,json=fileName,proto3" json:"file_name,omitempty"` // 原始文件名
+	Url           string                 `protobuf:"bytes,3,opt,name=url,proto3" json:"url,omitempty"`                           // 文件的可访问URL
+	Message       string                 `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`                   // 成功消息
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -736,8 +744,8 @@ func (x *FileUploadResponse) GetMessage() string {
 // 结构: 对话中引用的对象
 type Reference struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type"`                   // 引用类型, 例如: "file"
-	FileId        string                 `protobuf:"bytes,2,opt,name=file_id,json=fileId,proto3" json:"file_id"` // 文件ID
+	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`                   // 引用类型, 例如: "file"
+	FileId        string                 `protobuf:"bytes,2,opt,name=file_id,json=fileId,proto3" json:"file_id,omitempty"` // 文件ID
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -789,9 +797,9 @@ func (x *Reference) GetFileId() string {
 // 结构: 会话列表中的单个会话
 type Conversation struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	ConversationId string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id"` // 会话ID
-	Title          string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title"`                                         // 会话标题
-	UpdatedAt      string                 `protobuf:"bytes,3,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at"`                // 更新时间 (RFC3339 格式的字符串)
+	ConversationId string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"` // 会话ID
+	Title          string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`                                         // 会话标题
+	UpdatedAt      string                 `protobuf:"bytes,3,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`                // 更新时间 (RFC3339 格式的字符串)
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -850,11 +858,11 @@ func (x *Conversation) GetUpdatedAt() string {
 // 结构: 单条历史消息
 type Message struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id"`                                      // 消息ID
-	Role          string                 `protobuf:"bytes,2,opt,name=role,proto3" json:"role"`                                  // 角色: "user" 或 "assistant"
-	Content       string                 `protobuf:"bytes,3,opt,name=content,proto3" json:"content"`                            // 消息内容
-	ContentType   string                 `protobuf:"bytes,4,opt,name=content_type,json=contentType,proto3" json:"content_type"` // 内容类型, 例如: "text", "document_outline"
-	CreatedAt     string                 `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at"`       // 创建时间 (RFC3339 格式的字符串)
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`                                      // 消息ID
+	Role          string                 `protobuf:"bytes,2,opt,name=role,proto3" json:"role,omitempty"`                                  // 角色: "user" 或 "assistant"
+	Content       string                 `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`                            // 消息内容
+	ContentType   string                 `protobuf:"bytes,4,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"` // 内容类型, 例如: "text", "document_outline"
+	CreatedAt     string                 `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`       // 创建时间 (RFC3339 格式的字符串)
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -928,7 +936,7 @@ func (x *Message) GetCreatedAt() string {
 // 用于闲聊或最终文档生成的流式文本
 type SSEMessageEvent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Chunk         string                 `protobuf:"bytes,1,opt,name=chunk,proto3" json:"chunk"` // 流式返回的文本片段
+	Chunk         string                 `protobuf:"bytes,1,opt,name=chunk,proto3" json:"chunk,omitempty"` // 流式返回的文本片段
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -974,10 +982,10 @@ func (x *SSEMessageEvent) GetChunk() string {
 // 用于触发文档生成，返回内容清单
 type SSEInterruptEvent struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	ConversationId string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id"`
-	MessageId      string                 `protobuf:"bytes,2,opt,name=message_id,json=messageId,proto3" json:"message_id"`
-	ContentType    string                 `protobuf:"bytes,3,opt,name=content_type,json=contentType,proto3" json:"content_type"` // 内容类型, 例如 "document_outline"
-	Content        string                 `protobuf:"bytes,4,opt,name=content,proto3" json:"content"`                            // 需要填入编辑器的内容清单
+	ConversationId string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`
+	MessageId      string                 `protobuf:"bytes,2,opt,name=message_id,json=messageId,proto3" json:"message_id,omitempty"`
+	ContentType    string                 `protobuf:"bytes,3,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"` // 内容类型, 例如 "document_outline"
+	Content        string                 `protobuf:"bytes,4,opt,name=content,proto3" json:"content,omitempty"`                            // 需要填入编辑器的内容清单
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -1044,8 +1052,8 @@ func (x *SSEInterruptEvent) GetContent() string {
 // 表示一次完整的对话或流结束
 type SSEEndEvent struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	ConversationId string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id"` // 本次交互所属的会话ID
-	MessageId      string                 `protobuf:"bytes,2,opt,name=message_id,json=messageId,proto3" json:"message_id"`                // 本次交互最终生成的完整消息ID
+	ConversationId string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"` // 本次交互所属的会话ID
+	MessageId      string                 `protobuf:"bytes,2,opt,name=message_id,json=messageId,proto3" json:"message_id,omitempty"`                // 本次交互最终生成的完整消息ID
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -1120,8 +1128,9 @@ const file_llmcenter_proto_rawDesc = "" +
 	"\x12ChatResumeResponse\x126\n" +
 	"\amessage\x18\x01 \x01(\v2\x1a.llmcenter.SSEMessageEventH\x00R\amessage\x12*\n" +
 	"\x03end\x18\x02 \x01(\v2\x16.llmcenter.SSEEndEventH\x00R\x03endB\a\n" +
-	"\x05event\"\x19\n" +
-	"\x17GetConversationsRequest\"G\n" +
+	"\x05event\"2\n" +
+	"\x17GetConversationsRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\"G\n" +
 	"\x18GetConversationsResponse\x12+\n" +
 	"\x04data\x18\x01 \x03(\v2\x17.llmcenter.ConversationR\x04data\"G\n" +
 	"\x1cGetConversationDetailRequest\x12'\n" +

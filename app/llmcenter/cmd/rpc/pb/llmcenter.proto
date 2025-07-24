@@ -81,7 +81,7 @@ message ChatResumeResponse {
 // 请求: 获取用户所有会话列表
 // 通常 user_id 从 gRPC 的 metadata (类似 HTTP Header) 中获取，所以请求体为空。
 message GetConversationsRequest {
-  // int64 user_id = 1; // 可以选择在这里传递 user_id
+  int64 user_id = 1; // 可以选择在这里传递 user_id
 }
 
 // 响应: 会话列表

@@ -2,7 +2,6 @@ package conversation
 
 import (
 	"context"
-	"fmt"
 
 	"document_agent/app/llmcenter/cmd/api/internal/svc"
 	"document_agent/app/llmcenter/cmd/api/internal/types"
@@ -29,9 +28,8 @@ func NewGetConversationsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 
 func (l *GetConversationsLogic) GetConversations(req *types.GetConversationsRequest) (*types.GetConversationsResponse, error) {
 	// 调用后端 RPC
-	userId1 := ctxdata.GetUidFromCtx(l.ctx)
-	fmt.Printf("GetConversationsLogic userId: %d\n", userId1)
-	rpcResp, err := l.svcCtx.LlmCenterRpc.GetConversations(l.ctx, &rpcpb.GetConversationsRequest{})
+	userId := ctxdata.GetUidFromCtx(l.ctx)
+	rpcResp, err := l.svcCtx.LlmCenterRpc.GetConversations(l.ctx, &rpcpb.GetConversationsRequest{UserId: userId})
 	if err != nil {
 		l.Logger.Error("RPC GetConversations failed:", err)
 		return nil, err

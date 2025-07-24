@@ -11,5 +11,22 @@ type Config struct {
 		AccessSecret string
 		AccessExpire int64
 	}
+	Upload struct {
+		BaseDir string
+	}
+
+	Etcd struct {
+		Hosts []string
+		Key   string
+	}
+	FileCleaner struct {
+		Enable          bool
+		Dir             string
+		RetentionDays   int
+		IntervalMinutes int
+		MaxSizeMB       int64
+		UseEtcdLock     bool
+		LockKey         string
+	}
 	LlmCenterRpcConf zrpc.RpcClientConf
 }
