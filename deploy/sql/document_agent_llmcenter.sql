@@ -29,7 +29,7 @@ USE `document_agent_llmcenter`;
 DROP TABLE IF EXISTS `conversations`;
 CREATE TABLE `conversations` (
   `conversation_id` VARCHAR(32) NOT NULL COMMENT '会话ID (主键, ULID)',
-  `user_id`         VARCHAR(255) NOT NULL COMMENT '关联的用户ID',
+  `user_id`         bigint NOT NULL COMMENT '关联的用户ID',
   `title`           VARCHAR(255) NOT NULL DEFAULT '' COMMENT '会话标题',
   `metadata`        JSON DEFAULT NULL COMMENT '存储额外的数据，例如模型设置等',
   `created_at`      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',

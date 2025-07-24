@@ -14,11 +14,13 @@ import (
 	"github.com/zeromicro/go-zero/zrpc"
 	"go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/concurrency"
+
+	"github.com/zeromicro/go-zero/zrpc"
 )
 
 type ServiceContext struct {
 	Config       config.Config
-	LlmCenterRpc llmcenter.LlmCenter
+	LLMCenterRpc llmcenter.LlmCenter
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -102,5 +104,6 @@ func (s *ServiceContext) runWithLock(cl *cleaner.FileCleaner) {
 
 	if err := cl.CleanOnce(context.Background()); err != nil {
 		logx.Errorf("cleaner error: %v", err)
+		LLMCenterRpc: llmcenter.NewLlmCenter(zrpc.MustNewClient(c.LLMCenterRpcConf)),
 	}
 }

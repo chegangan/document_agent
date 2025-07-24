@@ -2,6 +2,7 @@ Name: llmcenter
 Host: 0.0.0.0
 Port: 8010
 Mode: dev
+Timeout: 300000 # 毫秒, 300000ms = 5 分钟
 
 Log:
   ServiceName: llmcenter-api
