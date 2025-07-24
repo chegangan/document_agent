@@ -5,6 +5,7 @@ import (
 
 	"document_agent/app/llmcenter/cmd/api/internal/svc"
 	"document_agent/app/llmcenter/cmd/api/internal/types"
+	rpcpb "document_agent/app/llmcenter/cmd/rpc/pb"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -24,8 +25,29 @@ func NewGetConversationDetailLogic(ctx context.Context, svcCtx *svc.ServiceConte
 	}
 }
 
-func (l *GetConversationDetailLogic) GetConversationDetail(req *types.GetConversationDetailRequest) (resp *types.GetConversationDetailResponse, err error) {
-	// todo: add your logic here and delete this line
+func (l *GetConversationDetailLogic) GetConversationDetail(req *types.GetConversationDetailRequest) (*types.GetConversationDetailResponse, error) {
+	rpcResp, err := l.svcCtx.LLMCenterRpc.GetConversationDetail(l.ctx, &rpcpb.GetConversationDetailRequest{
+		ConversationId: req.ConversationID,
+	})
+	if err != nil {
+		l.Logger.Errorf("RPC GetConversationDetail failed: %v", err)
+		return nil, err
+	}
 
-	return
+	var history []types.Message
+	for _, msg := range rpcResp.History {
+		history = append(history, types.Message{
+			ID:          msg.Id,
+			Role:        msg.Role,
+			Content:     msg.Content,
+			ContentType: msg.ContentType,
+			CreatedAt:   msg.CreatedAt,
+		})
+	}
+
+	return &types.GetConversationDetailResponse{
+		ConversationID: rpcResp.ConversationId,
+		Title:          rpcResp.Title,
+		History:        history,
+	}, nil
 }

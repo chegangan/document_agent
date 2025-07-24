@@ -68,6 +68,12 @@ type GetConversationDetailResponse {
 	History        []Message `json:"history"` // 详细消息历史
 }
 
+type GetFileReq {
+	Path string `form:"path"` // ← 用 form，而不是 query
+}
+
+type EmptyResp {}
+
 // ================== 服务定义 (Service Definition) ==================
 // 所有接口都需要 JWT 认证
 @server (
@@ -94,6 +100,10 @@ service llmcenter {
 	@doc "上传文件, 用于后续对话"
 	@handler fileUpload
 	post /files/upload (FileUploadRequest) returns (FileUploadResponse)
+
+	@doc "按相对路径获取文件"
+	@handler getFile
+	get /files (GetFileReq) returns (EmptyResp)
 }
 
 @server (

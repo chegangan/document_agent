@@ -1,6 +1,11 @@
 package model
 
-import "github.com/zeromicro/go-zero/core/stores/sqlx"
+import (
+	"context"
+	"fmt"
+
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
+)
 
 var _ ConversationsModel = (*customConversationsModel)(nil)
 
@@ -9,6 +14,9 @@ type (
 	// and implement the added methods in customConversationsModel.
 	ConversationsModel interface {
 		conversationsModel
+
+		FindAllByUser(ctx context.Context, userId string) ([]*Conversations, error)
+
 		withSession(session sqlx.Session) ConversationsModel
 	}
 
@@ -26,4 +34,11 @@ func NewConversationsModel(conn sqlx.SqlConn) ConversationsModel {
 
 func (m *customConversationsModel) withSession(session sqlx.Session) ConversationsModel {
 	return NewConversationsModel(sqlx.NewSqlConnFromSession(session))
+}
+
+func (m *defaultConversationsModel) FindAllByUser(ctx context.Context, userId string) ([]*Conversations, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE `user_id` = ?", conversationsRows, m.table)
+	var resp []*Conversations
+	err := m.conn.QueryRowsCtx(ctx, &resp, query, userId)
+	return resp, err
 }

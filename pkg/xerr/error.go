@@ -11,6 +11,7 @@ var (
 	ErrDbError              = errors.New(100005, "数据库繁忙,请稍后再试")
 	ErrDbUpdateAffectedZero = errors.New(100006, "更新数据影响行数为0")
 	ErrInvalidParameter     = errors.New(100007, "非法参数")
+	ErrFileNotFound         = errors.New(100009, "未找到文件")
 	ErrJWTError             = errors.New(100008, "鉴权失败")
 
 	// 用户模块错误码 200xxx

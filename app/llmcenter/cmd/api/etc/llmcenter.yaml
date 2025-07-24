@@ -11,11 +11,29 @@ Log:
 #jwtAuth
 Auth:
   AccessSecret: I8qLdnSA6N66rdYzBkZE5KjjK1M2keM9EzxVL97533g=
+  accessExpire: 3600
+
+Etcd:
+  Hosts:
+    - localhost:2379
+  Key: llmcenter.api
 
 # rpc 配置
-LlmcenterRpcConf:
+LlmCenterRpcConf:
   Etcd:
     Hosts:
       - localhost:2379
     Key: llmcenter.rpc
   NonBlock: true
+
+Upload:
+  BaseDir: D:/vsproject/document_agent/data/static
+
+FileCleaner:
+  Enable: true
+  Dir: "D:/vsproject/document_agent/data/static"      # 要清理的目录
+  RetentionDays: 1                                    # 保留天数，早于此的删
+  IntervalMinutes: 60                                 # 多久执行一次
+  MaxSizeMB: 0                                        # 0 不限制，>0 则超过大小也删
+  UseEtcdLock: true                                   # 是否走 etcd 分布式锁
+  LockKey: "/locks/filecleaner"
