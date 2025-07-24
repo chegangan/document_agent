@@ -13,6 +13,7 @@ import (
 	"document_agent/pkg/ctxdata"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"google.golang.org/grpc/status"
 )
 
 type ChatResumeLogic struct {
@@ -80,13 +81,25 @@ func (l *ChatResumeLogic) ChatResume(req *types.ChatResumeRequest) error {
 		resp, err := stream.Recv()
 
 		if err == io.EOF {
-			l.Infof("Stream finished for ChatResume on conversation %s.", req.ConversationID)
+			l.Infof("Resume stream finished for conversation %s.", req.ConversationID)
 			return nil // 正常结束
 		}
+
 		if err != nil {
-			// 连接可能已由客户端关闭，记录日志即可
-			l.Errorf("Error receiving from ChatResume stream: %v", err)
-			return nil
+			// 从 gRPC 错误中解析 status
+			st, _ := status.FromError(err)
+			l.Errorf("Error receiving from resume stream forCode: %d, Message: %s",
+				st.Code(), st.Message())
+
+			// 向客户端发送一个统一的错误事件
+			errorData := map[string]interface{}{
+				"code":    st.Code(),
+				"message": st.Message(),
+			}
+			// 忽略发送错误，因为此时连接可能已经断开
+			_ = l.sendSSE("error", errorData)
+
+			return nil // 返回 nil，因为错误已经通过 SSE 推送
 		}
 
 		// Resume 流程只包含 message 和 end 事件
@@ -123,5 +136,10 @@ func (l *ChatResumeLogic) sendSSE(event string, data interface{}) error {
 	if _, err := fmt.Fprintf(l.w, "data: %s\n\n", jsonData); err != nil {
 		return err
 	}
-	return nil
+
+	// 确保数据立即发送
+    if flusher, ok := l.w.(http.Flusher); ok {
+        flusher.Flush()
+    }
+    return nil
 }

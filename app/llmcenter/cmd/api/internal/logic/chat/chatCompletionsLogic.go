@@ -13,6 +13,7 @@ import (
 	"document_agent/pkg/ctxdata"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"google.golang.org/grpc/status"
 )
 
 type ChatCompletionsLogic struct {
@@ -106,9 +107,20 @@ func (l *ChatCompletionsLogic) ChatCompletions(req *types.ChatCompletionsRequest
 		}
 		// 如果在接收过程中发生其他错误（例如，上下文取消、网络问题）
 		if err != nil {
-			l.Errorf("Error receiving from stream: %v", err)
-			// 在这里可以不发送 HTTP 错误，因为连接可能已经断开
-			return nil
+			// 从 gRPC 错误中解析 status
+			st, _ := status.FromError(err)
+			l.Errorf("Error receiving from stream for Code: %d, Message: %s",
+				st.Code(), st.Message())
+
+			// 向客户端发送一个统一的错误事件
+			errorData := map[string]interface{}{
+				"code":    st.Code(),
+				"message": st.Message(),
+			}
+			// 忽略发送错误，因为此时连接可能已经断开
+			_ = l.sendSSE("error", errorData)
+
+			return nil // 返回 nil，因为错误已经通过 SSE 推送
 		}
 
 		// 使用 switch 处理不同类型的 SSE 事件
@@ -159,6 +171,10 @@ func (l *ChatCompletionsLogic) sendSSE(event string, data interface{}) error {
 	}
 	if _, err := fmt.Fprintf(l.w, "data: %s\n\n", jsonData); err != nil {
 		return err
+	}
+
+	if flusher, ok := l.w.(http.Flusher); ok {
+		flusher.Flush()
 	}
 	return nil
 }
