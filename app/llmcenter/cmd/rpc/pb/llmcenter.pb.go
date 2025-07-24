@@ -28,6 +28,7 @@ const (
 // 请求: 发起新对话或继续对话
 type ChatCompletionsRequest struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
+	UserId           int64                  `protobuf:"varint,6,opt,name=user_id,json=userId,proto3" json:"user_id"`                                 //api层传来的用户id
 	ConversationId   string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id"`          // 可选: 现有会话ID。如果为空，将创建新会话。
 	Prompt           string                 `protobuf:"bytes,2,opt,name=prompt,proto3" json:"prompt"`                                                // 必选: 用户输入的文本内容。
 	UseKnowledgeBase bool                   `protobuf:"varint,3,opt,name=use_knowledge_base,json=useKnowledgeBase,proto3" json:"use_knowledge_base"` // 可选: 是否使用自定义知识库。
@@ -65,6 +66,13 @@ func (x *ChatCompletionsRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ChatCompletionsRequest.ProtoReflect.Descriptor instead.
 func (*ChatCompletionsRequest) Descriptor() ([]byte, []int) {
 	return file_llmcenter_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *ChatCompletionsRequest) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
 }
 
 func (x *ChatCompletionsRequest) GetConversationId() string {
@@ -205,6 +213,7 @@ func (*ChatCompletionsResponse_End) isChatCompletionsResponse_Event() {}
 // 请求: 在中断后继续流程
 type ChatResumeRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
+	UserId         int64                  `protobuf:"varint,4,opt,name=user_id,json=userId,proto3" json:"user_id"`                        //api层传来的用户id
 	ConversationId string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id"` // 必选: 当前会话的ID。
 	Content        string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content"`                                     // 必选: 用户在前端编辑器中确认后的完整内容。
 	TemplateId     string                 `protobuf:"bytes,3,opt,name=template_id,json=templateId,proto3" json:"template_id"`             // 可选: 如果用户在这一步选择了模板。
@@ -240,6 +249,13 @@ func (x *ChatResumeRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ChatResumeRequest.ProtoReflect.Descriptor instead.
 func (*ChatResumeRequest) Descriptor() ([]byte, []int) {
 	return file_llmcenter_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *ChatResumeRequest) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
 }
 
 func (x *ChatResumeRequest) GetConversationId() string {
@@ -350,6 +366,7 @@ func (*ChatResumeResponse_End) isChatResumeResponse_Event() {}
 // 通常 user_id 从 gRPC 的 metadata (类似 HTTP Header) 中获取，所以请求体为空。
 type GetConversationsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id"` // 可以选择在这里传递 user_id
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -382,6 +399,13 @@ func (x *GetConversationsRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use GetConversationsRequest.ProtoReflect.Descriptor instead.
 func (*GetConversationsRequest) Descriptor() ([]byte, []int) {
 	return file_llmcenter_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *GetConversationsRequest) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
 }
 
 // 响应: 会话列表
@@ -1098,8 +1122,9 @@ var File_llmcenter_proto protoreflect.FileDescriptor
 
 const file_llmcenter_proto_rawDesc = "" +
 	"\n" +
-	"\x0fllmcenter.proto\x12\tllmcenter\"\xe9\x01\n" +
-	"\x16ChatCompletionsRequest\x12'\n" +
+	"\x0fllmcenter.proto\x12\tllmcenter\"\x82\x02\n" +
+	"\x16ChatCompletionsRequest\x12\x17\n" +
+	"\auser_id\x18\x06 \x01(\x03R\x06userId\x12'\n" +
 	"\x0fconversation_id\x18\x01 \x01(\tR\x0econversationId\x12\x16\n" +
 	"\x06prompt\x18\x02 \x01(\tR\x06prompt\x12,\n" +
 	"\x12use_knowledge_base\x18\x03 \x01(\bR\x10useKnowledgeBase\x12*\n" +
@@ -1111,8 +1136,9 @@ const file_llmcenter_proto_rawDesc = "" +
 	"\amessage\x18\x01 \x01(\v2\x1a.llmcenter.SSEMessageEventH\x00R\amessage\x12<\n" +
 	"\tinterrupt\x18\x02 \x01(\v2\x1c.llmcenter.SSEInterruptEventH\x00R\tinterrupt\x12*\n" +
 	"\x03end\x18\x03 \x01(\v2\x16.llmcenter.SSEEndEventH\x00R\x03endB\a\n" +
-	"\x05event\"w\n" +
-	"\x11ChatResumeRequest\x12'\n" +
+	"\x05event\"\x90\x01\n" +
+	"\x11ChatResumeRequest\x12\x17\n" +
+	"\auser_id\x18\x04 \x01(\x03R\x06userId\x12'\n" +
 	"\x0fconversation_id\x18\x01 \x01(\tR\x0econversationId\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\tR\acontent\x12\x1f\n" +
 	"\vtemplate_id\x18\x03 \x01(\tR\n" +
@@ -1120,8 +1146,9 @@ const file_llmcenter_proto_rawDesc = "" +
 	"\x12ChatResumeResponse\x126\n" +
 	"\amessage\x18\x01 \x01(\v2\x1a.llmcenter.SSEMessageEventH\x00R\amessage\x12*\n" +
 	"\x03end\x18\x02 \x01(\v2\x16.llmcenter.SSEEndEventH\x00R\x03endB\a\n" +
-	"\x05event\"\x19\n" +
-	"\x17GetConversationsRequest\"G\n" +
+	"\x05event\"2\n" +
+	"\x17GetConversationsRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\"G\n" +
 	"\x18GetConversationsResponse\x12+\n" +
 	"\x04data\x18\x01 \x03(\v2\x17.llmcenter.ConversationR\x04data\"G\n" +
 	"\x1cGetConversationDetailRequest\x12'\n" +

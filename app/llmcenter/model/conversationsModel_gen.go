@@ -38,7 +38,7 @@ type (
 
 	Conversations struct {
 		ConversationId string         `db:"conversation_id"` // 会话ID (主键, ULID)
-		UserId         string         `db:"user_id"`         // 关联的用户ID
+		UserId         int64          `db:"user_id"`         // 关联的用户ID
 		Title          string         `db:"title"`           // 会话标题
 		Metadata       sql.NullString `db:"metadata"`        // 存储额外的数据，例如模型设置等
 		CreatedAt      time.Time      `db:"created_at"`      // 创建时间

@@ -10,6 +10,7 @@ import (
 
 	"document_agent/app/llmcenter/cmd/rpc/internal/svc"
 	"document_agent/app/llmcenter/cmd/rpc/llmcenter"
+	"document_agent/app/llmcenter/cmd/rpc/pb"
 
 	"github.com/google/uuid"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -35,7 +36,7 @@ func NewFileUploadLogic(ctx context.Context, svcCtx *svc.ServiceContext) *FileUp
 }
 
 // FileUpload 处理客户端流式文件上传
-func (l *FileUploadLogic) FileUpload(stream llmcenter.LlmCenter_FileUploadServer) error {
+func (l *FileUploadLogic) FileUpload(stream pb.LlmCenter_FileUploadServer) error {
 	// 1. 接收第一个请求，它必须包含文件的元信息 (FileInfo)
 	req, err := stream.Recv()
 	if err != nil {
