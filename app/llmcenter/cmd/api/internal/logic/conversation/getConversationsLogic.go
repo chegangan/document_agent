@@ -28,8 +28,8 @@ func NewGetConversationsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 
 func (l *GetConversationsLogic) GetConversations(req *types.GetConversationsRequest) (*types.GetConversationsResponse, error) {
 	// 调用后端 RPC
-	userId := ctxdata.GetUidFromCtx(l.ctx)
-	rpcResp, err := l.svcCtx.LlmCenterRpc.GetConversations(l.ctx, &rpcpb.GetConversationsRequest{UserId: userId})
+	userId, _ := ctxdata.GetUidFromCtx(l.ctx)
+	rpcResp, err := l.svcCtx.LLMCenterRpc.GetConversations(l.ctx, &rpcpb.GetConversationsRequest{UserId: userId})
 	if err != nil {
 		l.Logger.Error("RPC GetConversations failed:", err)
 		return nil, err

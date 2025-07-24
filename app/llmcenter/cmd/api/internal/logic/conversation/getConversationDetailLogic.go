@@ -26,7 +26,7 @@ func NewGetConversationDetailLogic(ctx context.Context, svcCtx *svc.ServiceConte
 }
 
 func (l *GetConversationDetailLogic) GetConversationDetail(req *types.GetConversationDetailRequest) (*types.GetConversationDetailResponse, error) {
-	rpcResp, err := l.svcCtx.LlmCenterRpc.GetConversationDetail(l.ctx, &rpcpb.GetConversationDetailRequest{
+	rpcResp, err := l.svcCtx.LLMCenterRpc.GetConversationDetail(l.ctx, &rpcpb.GetConversationDetailRequest{
 		ConversationId: req.ConversationID,
 	})
 	if err != nil {

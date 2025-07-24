@@ -29,7 +29,7 @@ func NewGetConversationDetailLogic(ctx context.Context, svcCtx *svc.ServiceConte
 
 // RPC 方法: GetConversationDetail
 func (l *GetConversationDetailLogic) GetConversationDetail(in *pb.GetConversationDetailRequest) (*pb.GetConversationDetailResponse, error) {
-	conversation, err := l.svcCtx.ConversationsModel.FindOne(l.ctx, in.ConversationId)
+	conversation, err := l.svcCtx.ConversationModel.FindOne(l.ctx, in.ConversationId)
 	if err != nil {
 		if err == model.ErrNotFound {
 			return nil, fmt.Errorf("会话不存在或无权限: %w", xerr.ErrConversationNotFound)
@@ -39,7 +39,7 @@ func (l *GetConversationDetailLogic) GetConversationDetail(in *pb.GetConversatio
 	}
 
 	// 2. 查询该会话下所有消息
-	msgs, err := l.svcCtx.MessagesModel.FindAllByConversation(l.ctx, in.ConversationId)
+	msgs, err := l.svcCtx.MessageModel.FindAllByConversation(l.ctx, in.ConversationId)
 	if err != nil {
 		l.Logger.Errorf("查询会话[%s]消息失败: %v", in.ConversationId, err)
 		return nil, fmt.Errorf("查询消息列表失败: %v: %w", err, xerr.ErrDbError)

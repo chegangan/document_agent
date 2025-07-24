@@ -33,7 +33,7 @@ func (l *GetConversationsLogic) GetConversations(in *pb.GetConversationsRequest)
 	// 1. 查询所有会话
 	userId := strconv.FormatInt(in.UserId, 10)
 
-	convs, err := l.svcCtx.ConversationsModel.FindAllByUser(l.ctx, userId)
+	convs, err := l.svcCtx.ConversationModel.FindAllByUser(l.ctx, userId)
 	if err != nil {
 		l.Logger.Error("查询会话列表失败:", err)
 		// 按 loginByMobile 样式包装错误

@@ -45,7 +45,7 @@ func (l *FileUploadLogic) FileUpload(form *multipart.Form) (*types.FileUploadRes
 	defer file.Close()
 
 	// 调用 RPC
-	stream, err := l.svcCtx.LlmCenterRpc.FileUpload(l.ctx)
+	stream, err := l.svcCtx.LLMCenterRpc.FileUpload(l.ctx)
 	if err != nil {
 		fmt.Println("apierror")
 		return nil, err
