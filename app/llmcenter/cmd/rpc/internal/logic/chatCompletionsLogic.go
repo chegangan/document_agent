@@ -4,16 +4,19 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
-	"time"
 
 	"document_agent/app/llmcenter/cmd/rpc/internal/svc"
 	"document_agent/app/llmcenter/cmd/rpc/pb"
-	"document_agent/pkg/ctxdata"
+	"document_agent/app/llmcenter/cmd/rpc/types"
+	"document_agent/app/llmcenter/model"
+	"document_agent/pkg/tool"
+	"document_agent/pkg/xerr"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -34,62 +37,43 @@ func NewChatCompletionsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *C
 
 // ChatCompletions 是处理聊天请求的核心 RPC 方法
 func (l *ChatCompletionsLogic) ChatCompletions(in *pb.ChatCompletionsRequest, stream pb.LlmCenter_ChatCompletionsServer) error {
-	// 1. 从 gRPC Context 中获取用户ID (通常由JWT中间件注入)
-	userID := ctxdata.GetUidFromCtx(l.ctx)
-
 	// 2. 获取或创建会话，并获取历史消息
-	conversationID, historyMessages, err := l.getOrCreateConversation(in.ConversationId, userID, in.Prompt)
+	conversationID, historyMessages, err := l.getOrCreateConversation(in.UserId, in.ConversationId, in.Prompt)
 	if err != nil {
-		l.Errorf("getOrCreateConversation failed: %v", err)
 		return err
 	}
 
 	// 3. 保存当前用户发送的消息
-	userMessage := &pb.Message{ // TODO: 这应该是你的数据库模型结构体
-		MessageId:      generateULID(),
+	userMessage := &model.Messages{
+		MessageId:      tool.GenerateULID(),
 		ConversationId: conversationID,
 		Role:           "user",
 		Content:        in.Prompt,
 		ContentType:    "text",
-		// Metadata: ... , // 如果需要，可以设置 metadata
 	}
-	if err := l.saveMessage(userMessage); err != nil {
-		l.Errorf("saveUserMessage failed: %v", err)
-		return err
+	_, err = l.svcCtx.MessageModel.Insert(l.ctx, userMessage)
+	if err != nil {
+		return fmt.Errorf("ChatCompletions db message Insert err:%+v, message:%+v: %w", err, userMessage, xerr.ErrDbError)
 	}
 
 	// 4. 构建对大模型 API 的请求
-	llmReq := l.buildLLMRequest(conversationID, userID, in.Prompt, historyMessages)
+	llmReq := l.buildLLMRequest(in.UserId, conversationID, in.Prompt, historyMessages)
 	reqBody, err := json.Marshal(llmReq)
 	if err != nil {
-		l.Errorf("failed to marshal llm request: %v", err)
+		l.Errorf("failed to marshal llm request: %v :%w", err, xerr.ErrRequestParam)
 		return err
 	}
 
 	// 5. 调用大模型 API 并处理流式响应
-	return l.processLLMStream(reqBody, stream, conversationID)
+	return l.processLLMStream(reqBody, stream, conversationID, in.References)
 }
 
-// getUserIDFromCtx 从 context 中获取用户 ID
-func (l *ChatCompletionsLogic) getUserIDFromCtx() (string, error) {
-	// TODO: 在这里实现你的逻辑，例如从 JWT token 中解析用户 ID
-	// var userID string
-	// if jsonUid, ok := l.ctx.Value("uid").(json.Number); ok {
-	// 	userID = jsonUid.String()
-	// }
-	// if userID == "" {
-	// 	return "", errors.New("invalid user id")
-	// }
-	// return userID, nil
-	return "mock_user_12345", nil // 这是一个示例，请替换为真实逻辑
-}
-
-// getOrCreateConversation 根据请求处理会话，如果是新会话则创建
-func (l *ChatCompletionsLogic) getOrCreateConversation(convID, userID, prompt string) (string, []*pb.Message, error) { // 返回的 Message 应该是数据库模型
+// getOrCreateConversation 	获取或创建会话，并获取历史消息
+func (l *ChatCompletionsLogic) getOrCreateConversation(userID int64, convID, prompt string) (string, []*pb.Message, error) { // 返回的 Message 应该是数据库模型
 	if convID == "" {
 		// 创建新会话
-		newConvID := generateULID()
-		newConversation := &pb.Conversation{ // TODO: 这应该是你的数据库模型结构体
+		newConvID := tool.GenerateULID()
+		newConversation := &model.Conversations{
 			ConversationId: newConvID,
 			UserId:         userID,
 			Title:          l.generateTitle(prompt), // 使用 prompt 生成一个初始标题
@@ -97,63 +81,55 @@ func (l *ChatCompletionsLogic) getOrCreateConversation(convID, userID, prompt st
 
 		_, err := l.svcCtx.ConversationModel.Insert(l.ctx, newConversation)
 		if err != nil {
-			return "", nil, err
+			return "", nil, fmt.Errorf("getOrCreateConversation db conversation Insert err:%+v, conversation:%+v,: %w", err, newConversation, xerr.ErrDbError)
 		}
 
 		return newConvID, []*pb.Message{}, nil
 	}
 
-	// TODO: 验证现有会话是否存在，并属于当前用户
-	// conversation, err := l.svcCtx.ConversationModel.FindOne(l.ctx, convID)
-	// if err != nil {
-	// 	return "", nil, err // or custom error types.ErrConversationNotFound
-	// }
-	// if conversation.UserId != userID {
-	// 	return "", nil, errors.New("access denied to this conversation")
-	// }
+	// 如果提供了 convID，则尝试从数据库获取会话
+	conversation, err := l.svcCtx.ConversationModel.FindOne(l.ctx, convID)
+	if err != nil {
+		return "", nil, fmt.Errorf("getOrCreateConversation db conversation FindOne err:%+v, conversationId:%s: %w", err, convID, xerr.ErrConversationNotFound)
+	}
+	if conversation.UserId != userID {
+		return "", nil, fmt.Errorf("getOrCreateConversation 该用户id无法访问此会话 userId:%d, conversationId:%s: %w", userID, convID, xerr.ErrConversationAccessDenied)
+	}
 
-	// TODO: 从数据库获取该会话的历史消息
-	// history, err := l.svcCtx.MessageModel.FindAllByConversationID(l.ctx, convID)
-	// if err != nil {
-	//	return "", nil, err
-	// }
-	// return convID, history, nil
-
-	return convID, []*pb.Message{}, nil // 这是一个示例，请替换为真实逻辑
-}
-
-// saveMessage 将消息保存到数据库
-func (l *ChatCompletionsLogic) saveMessage(msg *pb.Message) error {
-	// TODO: 调用数据库模型来插入新的消息记录
-	// return l.svcCtx.MessageModel.Insert(l.ctx, msg)
-	l.Infof("Saving message: %+v", msg) // 打印日志代替真实存储
-	return nil
+	// 从数据库获取该会话的历史消息
+	getConversationDetailLogic := NewGetConversationDetailLogic(l.ctx, l.svcCtx)
+	GetConversationDetailResponse, err := getConversationDetailLogic.GetConversationDetail(&pb.GetConversationDetailRequest{
+		ConversationId: convID,
+	})
+	if err != nil {
+		return "", nil, fmt.Errorf("getOrCreateConversation db message FindAllByConversationID err:%+v, conversationId:%s: %w", err, convID, xerr.ErrMessageNotFound)
+	}
+	return convID, GetConversationDetailResponse.GetHistory(), nil
 }
 
 // buildLLMRequest 构建发送给星火大模型 API 的请求体
-func (l *ChatCompletionsLogic) buildLLMRequest(convID, userID, prompt string, history []*pb.Message) LLMApiRequest {
-	apiHistory := make([]LLMMessage, 0, len(history))
-	for _, msg := range history {
-		apiHistory = append(apiHistory, LLMMessage{
+func (l *ChatCompletionsLogic) buildLLMRequest(userID int64, convID, prompt string, history []*pb.Message) types.LLMApiRequest {
+	// 只取最近的10条历史消息，history是按照时间顺序排列的，所以最新的消息在最后
+	start := 0
+	if len(history) > 10 {
+		start = len(history) - 10
+	}
+	apiHistory := make([]types.LLMMessage, 0, len(history)-start)
+	for _, msg := range history[start:] {
+		apiHistory = append(apiHistory, types.LLMMessage{
 			Role:        msg.Role,
 			ContentType: msg.ContentType,
 			Content:     msg.Content,
 		})
 	}
 
-	// TODO: 从你的 svcCtx.Config 中加载这些配置
-	// flowID := l.svcCtx.Config.Xingchen.FlowID
-	flowID := "7265177322515169282" // 示例值
-
-	return LLMApiRequest{
+	flowID := l.svcCtx.Config.XingChen.FlowID
+	// TODO: 这里的parameters是工作流一开始的输入，默认为空，多模态输入加在这里
+	return types.LLMApiRequest{
 		FlowID: flowID,
-		UID:    userID,
-		Parameters: LLMParameters{
+		UID:    fmt.Sprintf("%d", userID),
+		Parameters: types.LLMParameters{
 			AgentUserInput: prompt,
-		},
-		Ext: LLMExt{
-			BotID:  "workflow",
-			Caller: "workflow",
 		},
 		Stream:  true,
 		ChatID:  convID,
@@ -162,33 +138,36 @@ func (l *ChatCompletionsLogic) buildLLMRequest(convID, userID, prompt string, hi
 }
 
 // processLLMStream 调用大模型API，处理返回的流，并推送到客户端gRPC流
-func (l *ChatCompletionsLogic) processLLMStream(reqBody []byte, stream pb.LlmCenter_ChatCompletionsServer, conversationID string) error {
-	// TODO: 从你的 svcCtx.Config 中加载 API URL 和认证信息
-	// apiURL := l.svcCtx.Config.Xingchen.ApiURL
-	// apiKey := l.svcCtx.Config.Xingchen.ApiKey
-	// apiSecret := l.svcCtx.Config.Xingchen.ApiSecret
-	apiURL := "https://xingchen-api.xf-yun.com/workflow/v1/chat/completions"
-	authToken := "Bearer YOUR_API_KEY:YOUR_API_SECRET" // TODO: 替换为真实的认证 Token
+func (l *ChatCompletionsLogic) processLLMStream(reqBody []byte, stream pb.LlmCenter_ChatCompletionsServer, conversationID string, references []*pb.Reference) error {
+	apiURL := l.svcCtx.Config.XingChen.ApiURL
+	apiKey := l.svcCtx.Config.XingChen.ApiKey
+	apiSecret := l.svcCtx.Config.XingChen.ApiSecret
+	authToken := fmt.Sprintf("Bearer %s:%s", apiKey, apiSecret)
 
-	req, err := http.NewRequest("POST", apiURL, bytes.NewReader(reqBody))
+	// 优化点 2：使用 http.NewRequestWithContext 传递上下文
+	// l.ctx 是从 gRPC 请求中来的，如果 gRPC 连接断开，l.ctx 会被取消。
+	req, err := http.NewRequestWithContext(l.ctx, "POST", apiURL, bytes.NewReader(reqBody))
 	if err != nil {
-		return fmt.Errorf("failed to create http request: %w", err)
+		// 注意：如果 l.ctx 此时已经被取消，这里会立刻返回错误
+		return fmt.Errorf("failed to create http request with context: %+v:%w", err, xerr.ErrLLMApiCancel)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", authToken)
-	req.Header.Set("Accept", "text/event-stream") // SSE 要求
+	req.Header.Set("Accept", "text/event-stream")
 
-	// TODO: 使用你项目中配置的 HTTP 客户端
-	client := &http.Client{Timeout: 5 * time.Minute}
+	// 优化点 1：使用在 ServiceContext 中初始化的可复用 HTTP 客户端
+	client := l.svcCtx.LlmApiClient
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to call llm api: %w", err)
+		// 如果是因为 context 取消导致的错误，日志会记录下来，函数会优雅退出。
+		return fmt.Errorf("failed to call llm api: %+v:%w", err, xerr.ErrLLMApiCancel)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("llm api returned non-200 status: %d, body: %s", resp.StatusCode, string(bodyBytes))
+		return fmt.Errorf("llm api returned non-200 status: %d, body: %s :%w",
+			resp.StatusCode, string(bodyBytes), xerr.ErrLLMApiError)
 	}
 
 	scanner := bufio.NewScanner(resp.Body)
@@ -201,29 +180,32 @@ func (l *ChatCompletionsLogic) processLLMStream(reqBody []byte, stream pb.LlmCen
 			continue
 		}
 
-		var apiResp LLMApiResponse
+		var apiResp types.LLMApiResponse
+		line = strings.TrimPrefix(line, "data: ")
 		if err := json.Unmarshal([]byte(line), &apiResp); err != nil {
-			l.Warnf("failed to unmarshal llm stream line: %s, error: %v", line, err)
+			l.Errorf("failed to unmarshal llm stream line: %s, error: %v", line, err)
 			continue
 		}
 
 		if apiResp.Code != 0 {
-			l.Errorf("LLM API error response: code=%d, message=%s", apiResp.Code, apiResp.Message)
 			// 可以选择向客户端发送一个错误事件，或者直接中断
-			return fmt.Errorf("llm api error: %s", apiResp.Message)
+			return fmt.Errorf("LLM API error response: code=%d, message=%s :%w",
+				apiResp.Code, apiResp.Message, xerr.ErrLLMApiError)
 		}
 
 		// 检查是否是中断事件
 		if apiResp.EventData != nil && apiResp.EventData.EventType == "interrupt" {
-			// 将会话ID存入Redis，过期时间30分钟
-			// TODO: 使用你的 Redis 客户端
-			// redisKey := fmt.Sprintf("llm:interrupt:%s", conversationID)
-			// err := l.svcCtx.RedisClient.Setex(redisKey, apiResp.EventData.EventID, 1800) // 30 * 60 seconds
-			// if err != nil {
-			// 	l.Errorf("failed to set interrupt key in redis for conv %s: %v", conversationID, err)
-			// 	return err // 如果关键步骤失败，则返回错误
-			// }
-			l.Infof("Interrupt event received for conv %s. Storing in Redis.", conversationID)
+			// 将会话ID和中断事件ID存入Redis，过期时间20分钟
+			redisKey := fmt.Sprintf("llm:interrupt:%s", conversationID)
+			// 使用 Setex 方法设置带过期时间的键
+			// 1200 秒 = 20 分钟
+			err := l.svcCtx.RedisClient.Setex(redisKey, apiResp.EventData.EventID, 1200)
+			if err != nil {
+				// 记录错误并返回，因为redis无法设置eventid
+				return fmt.Errorf("failed to set interrupt key in redis for conv %s: %v :%w",
+					conversationID, err, xerr.ErrLLMInterruptEventNotSet)
+			}
+			l.Infof("Interrupt event received for conv %s. Storing EventID %s in Redis.", conversationID, apiResp.EventData.EventID)
 
 			// 向客户端发送中断事件
 			interruptEvent := &pb.SSEInterruptEvent{
@@ -233,8 +215,7 @@ func (l *ChatCompletionsLogic) processLLMStream(reqBody []byte, stream pb.LlmCen
 				Content:     apiResp.EventData.Value.Content,
 			}
 			if err := stream.Send(&pb.ChatCompletionsResponse{Event: &pb.ChatCompletionsResponse_Interrupt{Interrupt: interruptEvent}}); err != nil {
-				l.Errorf("failed to send interrupt event to client: %v", err)
-				return err
+				return fmt.Errorf("failed to send interrupt event to client: %v:%w", err, xerr.ErrLLMInterruptEventNotSet)
 			}
 			return nil // 中断后，当前流式交互结束
 		}
@@ -247,8 +228,8 @@ func (l *ChatCompletionsLogic) processLLMStream(reqBody []byte, stream pb.LlmCen
 				// 向客户端发送消息块
 				messageEvent := &pb.SSEMessageEvent{Chunk: chunk}
 				if err := stream.Send(&pb.ChatCompletionsResponse{Event: &pb.ChatCompletionsResponse_Message{Message: messageEvent}}); err != nil {
-					l.Errorf("failed to send message chunk to client: %v", err)
-					return err
+					return fmt.Errorf("failed to send message chunk to client: %v:%w",
+						err, xerr.ErrLLMApiCancel)
 				}
 			}
 
@@ -260,47 +241,51 @@ func (l *ChatCompletionsLogic) processLLMStream(reqBody []byte, stream pb.LlmCen
 	}
 
 	if err := scanner.Err(); err != nil {
-		l.Errorf("error reading llm stream: %v", err)
-		return err
+		return fmt.Errorf("error reading llm stream: %v:%w", err, xerr.ErrLLMApiError)
 	}
 
-	// 6. 保存完整的助手回复
-	assistantMessageID = generateULID()
-	assistantMessage := &pb.Message{ // TODO: 数据库模型
+	// 6. 保存完整的助手回复,这里注意如果用户信息有图片，也需要把url存进去
+	referencesData, err := json.Marshal(references)
+	if err != nil {
+		return fmt.Errorf("failed to marshal references: %v:%w", err, xerr.ErrRequestParam)
+	}
+	referencesDataStr := string(referencesData)
+	assistantMessageID = tool.GenerateULID()
+	assistantMessage := &model.Messages{
 		MessageId:      assistantMessageID,
 		ConversationId: conversationID,
 		Role:           "assistant",
 		Content:        assistantReply.String(),
-		ContentType:    "text",
+		ContentType:    "document_outline",
+		Metadata: sql.NullString{
+			String: referencesDataStr, // 正确地创建 sql.NullString 实例
+			Valid:  true,
+		},
 	}
-	if err := l.saveMessage(assistantMessage); err != nil {
+
+	_, err = l.svcCtx.MessageModel.Insert(l.ctx, assistantMessage)
+	if err != nil {
 		l.Errorf("saveAssistantMessage failed: %v", err)
 		// 即使保存失败，也应该通知前端结束，所以不在这里 return err
 	}
 
-	// 7. 向客户端发送结束事件
+	// 7. 向客户端发送结束事件。客户端需要在resume结束之后手动创建新的对话
 	endEvent := &pb.SSEEndEvent{
 		ConversationId: conversationID,
 		MessageId:      assistantMessageID,
 	}
 	if err := stream.Send(&pb.ChatCompletionsResponse{Event: &pb.ChatCompletionsResponse_End{End: endEvent}}); err != nil {
-		l.Errorf("failed to send end event to client: %v", err)
-		return err
+		return fmt.Errorf("failed to send end event to client: %v:%w", err, xerr.ErrLLMApiCancel)
 	}
 
 	return nil
-}
-
-// generateULID 生成一个 ULID 作为唯一标识符
-func generateULID() string {
-	return ulid.Make().String()
 }
 
 // generateTitle 根据用户的第一条消息生成一个简单的标题
 func (l *ChatCompletionsLogic) generateTitle(prompt string) string {
 	// 将 prompt 转换为 rune 数组以正确处理多字节字符（如中文）
 	runes := []rune(prompt)
-	maxLength := 20 // 标题最大长度
+	maxLength := 15 // 标题最大长度
 	if len(runes) > maxLength {
 		return string(runes[:maxLength]) + "..."
 	}

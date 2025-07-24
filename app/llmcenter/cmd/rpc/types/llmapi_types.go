@@ -50,3 +50,9 @@ type LLMEventData struct {
 		Content string `json:"content"` // 问题内容
 	} `json:"value"`
 }
+
+type LLMResumeApiRequest struct {
+	EventID   string `json:"event_id"`
+	EventType string `json:"event_type"` // "resume", "ignore", "abort"
+	Content   string `json:"content"`
+}

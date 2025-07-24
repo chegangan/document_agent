@@ -1,10 +1,18 @@
 package config
 
-import "github.com/zeromicro/go-zero/zrpc"
+import (
+	"github.com/zeromicro/go-zero/zrpc"
+)
 
 type Config struct {
 	zrpc.RpcServerConf
 	DB struct {
 		DataSource string
+	}
+	XingChen struct {
+		FlowID    string // 星辰工作流的 FlowID
+		ApiURL    string // 星辰大模型 API 的 URL
+		ApiKey    string // 星辰大模型 API 的 Key
+		ApiSecret string // 星辰大模型 API 的 Secret
 	}
 }

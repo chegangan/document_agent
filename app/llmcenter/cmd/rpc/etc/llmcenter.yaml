@@ -1,6 +1,5 @@
 Name: llmcenter.rpc
-Host: 0.0.0.0
-Port: 8011
+ListenOn: 127.0.0.1:8011
 Mode: dev
 
 Log:
@@ -14,3 +13,16 @@ Etcd:
 
 DB:
   DataSource: llmcenter:G7v@pL2#xQ9!sT8z@tcp(localhost:3306)/document_agent_llmcenter?charset=utf8mb4&parseTime=true&loc=Asia%2FShanghai
+
+XingChen:
+  FlowID: "7354036860419776514"
+  ApiURL: "https://xingchen-api.xf-yun.com/workflow/v1/chat/completions"
+  ApiSecret: "NGMxMGExNjNiOTlkNjRlYWVhYWNkYmYx"
+  ApiKey: "1353e7515be8d3b2503bee567349c3ea"
+
+Redis:
+  Host: localhost:6379
+  Type: node  # 单节点模式用 node，集群模式用 cluster
+  Pass: ""    # 如果你的 Redis 有密码，在这里填写
+  Tls: false
+  Key: llmcenter:redis

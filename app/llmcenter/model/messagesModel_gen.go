@@ -41,7 +41,7 @@ type (
 		ConversationId string         `db:"conversation_id"` // 关联的会话ID (外键)
 		Role           string         `db:"role"`            // 角色: "user" 或 "assistant"
 		Content        string         `db:"content"`         // 消息的具体内容
-		ContentType    string         `db:"content_type"`    // 内容类型: "text", "document_outline" 等
+		ContentType    string         `db:"content_type"`    // 内容类型: "text", "document_outline", "final_document" 等
 		Metadata       sql.NullString `db:"metadata"`        // 存储额外的数据，例如引用的文档ID等
 		CreatedAt      time.Time      `db:"created_at"`      // 消息创建时间
 	}
