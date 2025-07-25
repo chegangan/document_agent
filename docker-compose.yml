@@ -1,0 +1,132 @@
+version: '3.8'
+
+networks:
+  document_agent_net:
+    driver: bridge
+
+services:
+  # --- UserCenter Services ---
+  usercenter-api:
+    image: document-agent/usercenter-api:latest
+    build:
+      context: .
+      dockerfile: app/usercenter/cmd/api/dockerfile
+    container_name: usercenter-api
+    ports:
+      - "8000:8000"
+    networks:
+      - document_agent_net
+    depends_on:
+      - usercenter-rpc
+      - etcd
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./deploy/etc/usercenterapi.yaml:/app/etc/usercenter.yaml
+    restart: always
+
+  usercenter-rpc:
+    image: document-agent/usercenter-rpc:latest
+    build:
+      context: .
+      dockerfile: app/usercenter/cmd/rpc/dockerfile
+    container_name: usercenter-rpc
+    networks:
+      - document_agent_net
+    depends_on:
+      - mysql
+      - etcd
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./deploy/etc/usercenterrpc.yaml:/app/etc/usercenter.yaml
+    restart: always
+
+  # --- LLMCenter Services ---
+  llmcenter-api:
+    image: document-agent/llmcenter-api:latest
+    build:
+      context: .
+      dockerfile: app/llmcenter/cmd/api/Dockerfile
+    container_name: llmcenter-api
+    ports:
+      - "8010:8010"
+    networks:
+      - document_agent_net
+    depends_on:
+      - llmcenter-rpc
+      - etcd
+    volumes:
+      - ./deploy/etc/llmcenterapi.yaml:/app/etc/llmcenter.yaml
+      - ./data/static:/app/data/static
+    environment:
+      - TZ=Asia/Shanghai
+    restart: always
+
+  llmcenter-rpc:
+    image: document-agent/llmcenter-rpc:latest
+    build:
+      context: .
+      dockerfile: app/llmcenter/cmd/rpc/Dockerfile
+    container_name: llmcenter-rpc
+    networks:
+      - document_agent_net
+    depends_on:
+      - mysql
+      - redis
+      - etcd
+    volumes:
+      # 同样挂载，确保 RPC 服务能访问到 API 服务上传的文件
+      - ./deploy/etc/llmcenterrpc.yaml:/app/etc/llmcenter.yaml
+      - ./data/static:/app/data/static
+    environment:
+      - TZ=Asia/Shanghai
+    restart: always
+
+  # --- Infrastructure Services ---
+  mysql:
+    image: mysql/mysql-server:8.0.28
+    container_name: mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - document_agent_net
+    env_file:
+      - ./deploy/docker/mysql_root_password.txt
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./deploy/sql:/docker-entrypoint-initdb.d
+      - mysql-data:/var/lib/mysql
+    command:
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --default-time-zone=Asia/Shanghai
+    restart: always
+
+  redis:
+    image: redis:6.2.5
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - document_agent_net
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - redis-data:/data
+    restart: always
+
+  etcd:
+    image: bitnami/etcd:3.5.15
+    container_name: etcd
+    networks:
+      - document_agent_net
+    environment:
+      - ALLOW_NONE_AUTHENTICATION=yes
+      - ETCD_ADVERTISE_CLIENT_URLS=http://etcd:2379
+    restart: always
+
+volumes:
+  mysql-data:
+  redis-data:

@@ -33,9 +33,6 @@ WORKDIR /app
 # 从 builder 阶段复制编译好的二进制文件
 COPY --from=builder /app/usercenter-api .
 
-# 复制 API 服务的配置文件
-COPY app/usercenter/cmd/api/etc/usercenter.yaml ./etc/
-
 # 暴露 API 服务端口
 EXPOSE 8000
 

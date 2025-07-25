@@ -15,10 +15,10 @@ RUN go env -w GOPROXY=https://goproxy.cn,direct \
 # 复制所有源代码
 COPY . .
 
-# 编译 RPC 服务为静态链接的二进制文件
+# 编译 API 服务为静态链接的二进制文件
 # CGO_ENABLED=0 禁用 CGO
 # -ldflags="-s -w" 去除调试信息，减小体积
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o usercenter-rpc app/usercenter/cmd/rpc/usercenter.go
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o llmcenter-api app/llmcenter/cmd/api/llmcenter.go
 
 # ---- Final Stage ----
 # 使用轻量的 Alpine 镜像作为最终镜像
@@ -31,10 +31,14 @@ RUN apk add --no-cache tzdata
 WORKDIR /app
 
 # 从 builder 阶段复制编译好的二进制文件
-COPY --from=builder /app/usercenter-rpc .
+COPY --from=builder /app/llmcenter-api .
 
-# 暴露 RPC 服务端口
-EXPOSE 8001
+# 复制 API 服务的静态资源目录
+
+COPY app/llmcenter/cmd/api/data/ ./data/
+
+# 暴露 API 服务端口
+EXPOSE 8010
 
 # 容器启动命令
-CMD ["./usercenter-rpc", "-f", "etc/usercenter.yaml"]
+CMD ["./llmcenter-api", "-f", "etc/llmcenter.yaml"]
