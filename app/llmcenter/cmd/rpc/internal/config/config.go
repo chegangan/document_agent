@@ -10,9 +10,10 @@ type Config struct {
 		DataSource string
 	}
 	XingChen struct {
-		FlowID    string // 星辰工作流的 FlowID
-		ApiURL    string // 星辰大模型 API 的 URL
-		ApiKey    string // 星辰大模型 API 的 Key
-		ApiSecret string // 星辰大模型 API 的 Secret
+		FlowID       string // 星辰工作流的 FlowID
+		ApiURL       string // 星辰大模型 API 的 URL
+		ApiResumeURL string // 星辰大模型 API 的 Resume URL
+		ApiKey       string // 星辰大模型 API 的 Key
+		ApiSecret    string // 星辰大模型 API 的 Secret
 	}
 }

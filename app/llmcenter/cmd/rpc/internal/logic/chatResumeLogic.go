@@ -105,7 +105,7 @@ func (l *ChatResumeLogic) validateConversation(userID int64, convID string) erro
 // processLLMResumeStream 调用大模型Resume API，处理返回的流，并推送到客户端gRPC流
 func (l *ChatResumeLogic) processLLMResumeStream(reqBody []byte, stream pb.LlmCenter_ChatResumeServer, conversationID string) error {
 	// [手动修改] 确保你的配置文件中有 ResumeApiURL
-	apiURL := l.svcCtx.Config.XingChen.ApiURL
+	apiURL := l.svcCtx.Config.XingChen.ApiResumeURL
 	apiKey := l.svcCtx.Config.XingChen.ApiKey
 	apiSecret := l.svcCtx.Config.XingChen.ApiSecret
 	authToken := fmt.Sprintf("Bearer %s:%s", apiKey, apiSecret)

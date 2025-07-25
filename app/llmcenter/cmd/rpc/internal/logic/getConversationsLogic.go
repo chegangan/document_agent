@@ -35,9 +35,7 @@ func (l *GetConversationsLogic) GetConversations(in *pb.GetConversationsRequest)
 
 	convs, err := l.svcCtx.ConversationModel.FindAllByUser(l.ctx, userId)
 	if err != nil {
-		l.Logger.Error("查询会话列表失败:", err)
-		// 按 loginByMobile 样式包装错误
-		return nil, fmt.Errorf("查询会话列表失败: %v: %w", err, xerr.ErrDbError)
+		return nil, fmt.Errorf("查询会话列表失败: %v, UserId: %s: %w", err, userId, xerr.ErrDbError)
 	}
 
 	// 2. 组装返回
@@ -51,7 +49,7 @@ func (l *GetConversationsLogic) GetConversations(in *pb.GetConversationsRequest)
 	}
 
 	if len(list) == 0 {
-		return nil, fmt.Errorf("没有找到任何会话: %w", xerr.ErrConversationNotFound)
+		return nil, fmt.Errorf("没有找到任何会话: %w, UserId: %s", xerr.ErrConversationNotFound, userId)
 	}
 
 	return &pb.GetConversationsResponse{

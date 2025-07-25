@@ -7,6 +7,8 @@ Timeout: 300000 # 毫秒, 300000ms = 5 分钟
 Log:
   ServiceName: llmcenter-api
   Level: error
+  Mode: console
+  SlowThreshold: 30000
 
 #jwtAuth
 Auth:
@@ -27,11 +29,11 @@ LlmCenterRpcConf:
   NonBlock: true
 
 Upload:
-  BaseDir: D:/vsproject/document_agent/data/static
+  BaseDir: data/static
 
 FileCleaner:
   Enable: true
-  Dir: "D:/vsproject/document_agent/data/static"      # 要清理的目录
+  Dir: "data/static"      # 要清理的目录
   RetentionDays: 1                                    # 保留天数，早于此的删
   IntervalMinutes: 60                                 # 多久执行一次
   MaxSizeMB: 0                                        # 0 不限制，>0 则超过大小也删

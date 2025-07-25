@@ -3,8 +3,10 @@ ListenOn: 127.0.0.1:8011
 Mode: dev
 
 Log:
-  ServiceName: llmcenter-api
+  ServiceName: llmcenter-rpc
   Level: error
+  Mode: console
+  SlowThreshold: 30000
   
 Etcd:
   Hosts:
@@ -15,10 +17,11 @@ DB:
   DataSource: llmcenter:G7v@pL2#xQ9!sT8z@tcp(localhost:3306)/document_agent_llmcenter?charset=utf8mb4&parseTime=true&loc=Asia%2FShanghai
 
 XingChen:
-  FlowID: "7354036860419776514"
+  FlowID: "7354391026480812034"
   ApiURL: "https://xingchen-api.xf-yun.com/workflow/v1/chat/completions"
-  ApiSecret: "NGMxMGExNjNiOTlkNjRlYWVhYWNkYmYx"
-  ApiKey: "1353e7515be8d3b2503bee567349c3ea"
+  ApiResumeURL: "https://xingchen-api.xf-yun.com/workflow/v1/resume"
+  ApiSecret: "MmVmZmY4YjhhMmQzMWUxMTllNTFiZjhj"
+  ApiKey: "a08967af6fefaf656356d138b67947cf"
 
 Redis:
   Host: localhost:6379

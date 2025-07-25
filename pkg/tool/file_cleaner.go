@@ -16,6 +16,19 @@ type FileCleanerCfg struct {
 	MaxSizeBytes int64         // >0 超过就删, 0 不限制
 }
 
+// StartFileCleaner 启动一个循环定时任务
+func StartFileCleaner(cfg FileCleanerCfg, interval time.Duration) {
+	// 先跑一次
+	_ = CleanOnce(context.Background(), cfg)
+
+	tk := time.NewTicker(interval)
+	defer tk.Stop()
+
+	for range tk.C {
+		_ = CleanOnce(context.Background(), cfg)
+	}
+}
+
 func CleanOnce(ctx context.Context, cfg FileCleanerCfg) error {
 	log := logx.WithContext(ctx)
 	now := time.Now()
