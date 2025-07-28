@@ -8,7 +8,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"document_agent/app/llmcenter/cmd/rpc/internal/svc"
@@ -56,8 +59,23 @@ func (l *ChatCompletionsLogic) ChatCompletions(in *pb.ChatCompletionsRequest, st
 		return fmt.Errorf("ChatCompletions db message Insert err:%+v, message:%+v: %w", err, userMessage, xerr.ErrDbError)
 	}
 
-	// 4. 构建对大模型 API 的请求
-	llmReq := l.buildLLMRequest(in.UserId, conversationID, in.Prompt, historyMessages)
+	prompt := in.Prompt
+	var imgUrl string
+
+	for _, ref := range in.References {
+		if ref.Type == "file" {
+			localPath := filepath.Join(l.svcCtx.Config.Upload.BaseDir, ref.FileId)
+			url, err := uploadImageToXingHuo(localPath, l.svcCtx.Config.XingChen.ApiKey, l.svcCtx.Config.XingChen.ApiSecret)
+			if err != nil {
+				l.Errorf("图片上传失败：file_id=%s err=%v", ref.FileId, err)
+				continue
+			}
+			imgUrl = url
+		}
+	}
+
+	llmReq := l.buildLLMRequest(in.UserId, conversationID, prompt, historyMessages, imgUrl)
+
 	reqBody, err := json.Marshal(llmReq)
 	if err != nil {
 		l.Errorf("failed to marshal llm request: %v :%w", err, xerr.ErrRequestParam)
@@ -108,7 +126,8 @@ func (l *ChatCompletionsLogic) getOrCreateConversation(userID int64, convID, pro
 }
 
 // buildLLMRequest 构建发送给星火大模型 API 的请求体
-func (l *ChatCompletionsLogic) buildLLMRequest(userID int64, convID, prompt string, history []*pb.Message) types.LLMApiRequest {
+func (l *ChatCompletionsLogic) buildLLMRequest(userID int64, convID, prompt string, history []*pb.Message, imgUrl string) types.LLMApiRequest {
+
 	// 只取最近的10条历史消息，history是按照时间顺序排列的，所以最新的消息在最后
 	start := 0
 	if len(history) > 10 {
@@ -116,9 +135,10 @@ func (l *ChatCompletionsLogic) buildLLMRequest(userID int64, convID, prompt stri
 	}
 	apiHistory := make([]types.LLMMessage, 0, len(history)-start)
 	for _, msg := range history[start:] {
+
 		apiHistory = append(apiHistory, types.LLMMessage{
 			Role:        msg.Role,
-			ContentType: msg.ContentType,
+			ContentType: "text",
 			Content:     msg.Content,
 		})
 	}
@@ -130,6 +150,7 @@ func (l *ChatCompletionsLogic) buildLLMRequest(userID int64, convID, prompt stri
 		UID:    fmt.Sprintf("%d", userID),
 		Parameters: types.LLMParameters{
 			AgentUserInput: prompt,
+			Img:            imgUrl,
 		},
 		Stream:  true,
 		ChatID:  convID,
@@ -211,7 +232,7 @@ func (l *ChatCompletionsLogic) processLLMStream(reqBody []byte, stream pb.LlmCen
 			interruptEvent := &pb.SSEInterruptEvent{
 				ConversationId: conversationID,
 				// MessageId:      ... // 可以生成一个临时的ID
-				ContentType: apiResp.EventData.Value.Type,
+				ContentType: "document_outline",
 				Content:     apiResp.EventData.Value.Content,
 			}
 			if err := stream.Send(&pb.ChatCompletionsResponse{Event: &pb.ChatCompletionsResponse_Interrupt{Interrupt: interruptEvent}}); err != nil {
@@ -290,4 +311,53 @@ func (l *ChatCompletionsLogic) generateTitle(prompt string) string {
 		return string(runes[:maxLength]) + "..."
 	}
 	return string(runes)
+}
+
+//=============================================================================================================
+
+func uploadImageToXingHuo(filePath, apiKey, apiSecret string) (string, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return "", fmt.Errorf("无法打开文件 %s: %w", filePath, err)
+	}
+	defer file.Close()
+
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+	part, err := writer.CreateFormFile("file", filepath.Base(filePath))
+	if err != nil {
+		return "", err
+	}
+	if _, err = io.Copy(part, file); err != nil {
+		return "", err
+	}
+	writer.Close()
+
+	req, err := http.NewRequest("POST", "https://xingchen-api.xf-yun.com/workflow/v1/upload_file", &buf)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s:%s", apiKey, apiSecret))
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+		Data    struct {
+			URL string `json:"url"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", err
+	}
+	if result.Code != 0 {
+		return "", fmt.Errorf("上传失败 code=%d: %s", result.Code, result.Message)
+	}
+	return result.Data.URL, nil
 }

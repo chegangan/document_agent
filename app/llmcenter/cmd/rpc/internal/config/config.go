@@ -15,4 +15,7 @@ type Config struct {
 		ApiKey    string // 星辰大模型 API 的 Key
 		ApiSecret string // 星辰大模型 API 的 Secret
 	}
+	Upload struct {
+		BaseDir string
+	}
 }
