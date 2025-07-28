@@ -13,6 +13,7 @@ type LLMApiRequest struct {
 
 type LLMParameters struct {
 	AgentUserInput string `json:"AGENT_USER_INPUT"`
+	Img            string `json:"img,omitempty"`
 }
 
 type LLMExt struct {

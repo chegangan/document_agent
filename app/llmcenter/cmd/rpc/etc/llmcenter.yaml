@@ -29,3 +29,6 @@ Redis:
   Pass: ""    # 如果你的 Redis 有密码，在这里填写
   Tls: false
   Key: llmcenter:redis
+  
+Upload:
+  BaseDir: D:/vsproject/document_agent/data/static
