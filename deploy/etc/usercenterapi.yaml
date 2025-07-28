@@ -5,7 +5,7 @@ Mode: dev
 
 Log:
   ServiceName: usercenter-api
-  Level: error
+  Level: info
 
 #jwtAuth
 JwtAuth:
@@ -18,3 +18,4 @@ UsercenterRpcConf:
       - etcd:2379
     Key: usercenter.rpc
   NonBlock: true
+

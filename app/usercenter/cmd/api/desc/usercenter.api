@@ -1,42 +1,54 @@
+// 声明 .api 文件的语法版本。
 syntax = "v1"
 
+// info 块定义了 API 的元数据，将展示在 Swagger UI 的顶部。
 info (
 	title:   "用户中心服务"
-	desc:    "用户中心服务"
+	desc:    "提供用户注册、登录及信息管理等核心功能。"
 	author:  "Chegan"
 	email:   "chegangan123@gmail.com"
 	version: "v1"
 )
 
+// 导入外部的 .api 文件，这里用于集中管理用户相关的请求和响应结构体。
 import (
 	"user/user.api"
 )
 
-//============================> usercenter v1 <============================
-//no need login
+
+// ==================> 用户中心 v1 (User Center v1) <==================
+
+// --- 无需登录的接口 (Public Endpoints) ---
+// @server 注解用于定义一组服务接口。
+// prefix: 为该服务块下的所有路由添加统一的前缀。
+// group:  为生成的 handler 和 logic 代码指定分组（即子目录名），便于代码组织。
 @server (
-	prefix: usercenter/v1
+	prefix: /usercenter/v1
 	group:  user
 )
 service usercenter {
-	@doc "register"
+	// @doc:    接口的详细描述，会显示在 Swagger UI 中。
+	// @handler: 指定此路由在 logic 中对应的方法名。
+
+	@doc "用户注册"
 	@handler register
 	post /user/register (RegisterReq) returns (RegisterResp)
 
-	@doc "login"
+	@doc "用户登录"
 	@handler login
 	post /user/login (LoginReq) returns (LoginResp)
 }
 
-//need login
+// --- 需要登录认证的接口 (Authenticated Endpoints) ---
+// jwt: 指定该服务块下的所有接口都需要进行 JWT 认证。
+//      'JwtAuth' 是在服务配置文件 .yaml 中定义的认证策略名称。
 @server (
-	prefix: usercenter/v1
+	prefix: /usercenter/v1
 	group:  user
 	jwt:    JwtAuth
 )
 service usercenter {
-	@doc "get user info"
+	@doc "获取当前登录用户的详细信息"
 	@handler detail
 	post /user/detail (UserInfoReq) returns (UserInfoResp)
 }
-

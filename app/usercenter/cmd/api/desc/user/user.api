@@ -1,46 +1,74 @@
+// 声明 .api 文件的语法版本。
 syntax = "v1"
 
+// info 块定义了 API 的元数据。
 info(
-	title: "用户实例"
-	desc: "用户实例"
-	author: "Chegan"
-	email: "chegangan123@gmail.com"
+	title:   "用户实例"
+	desc:    "定义了用户中心服务所需的数据结构，包括用户实体、注册和登录的请求/响应体。"
+	author:  "Chegan"
+	email:   "chegangan123@gmail.com"
+	version: "v1"
 )
 
+// User 定义了用户的核心信息。
 type User {
+	// 用户的唯一标识ID。
 	Id       int64  `json:"id"`
+	// 用户的手机号码，通常作为登录账号。
 	Mobile   string `json:"mobile"`
+	// 用户的昵称。
 	Nickname string `json:"nickname"`
 }
 
+// RegisterReq/RegisterResp 定义了注册接口的请求和响应。
 type (
+	// RegisterReq 定义了用户注册的请求参数。
 	RegisterReq {
+		// 注册用的手机号。
 		Mobile   string `json:"mobile"`
+		// 用户设置的密码。
 		Password string `json:"password"`
 	}
+	// RegisterResp 定义了用户注册成功后的响应。
 	RegisterResp {
+		// 用于后续接口调用的认证令牌 (JWT)。
 		AccessToken  string `json:"accessToken"`
+		// AccessToken 的 Unix 时间戳 (秒)，表示过期时刻。
 		AccessExpire int64  `json:"accessExpire"`
+		// 建议的刷新时刻 (AccessExpire - N)，客户端应在此时间后刷新 token。
 		RefreshAfter int64  `json:"refreshAfter"`
 	}
 )
 
+// LoginReq/LoginResp 定义了登录接口的请求和响应。
 type (
+	// LoginReq 定义了用户登录的请求参数。
 	LoginReq {
+		// 登录用的手机号。
 		Mobile   string `json:"mobile"`
+		// 登录密码。
 		Password string `json:"password"`
 	}
+	// LoginResp 定义了用户登录成功后的响应。
 	LoginResp {
+		// 用于后续接口调用的认证令牌 (JWT)。
 		AccessToken  string `json:"accessToken"`
+		// AccessToken 的 Unix 时间戳 (秒)，表示过期时刻。
 		AccessExpire int64  `json:"accessExpire"`
+		// 建议的刷新时刻 (AccessExpire - N)，客户端应在此时间后刷新 token。
 		RefreshAfter int64  `json:"refreshAfter"`
 	}
 )
 
+// UserInfoReq/UserInfoResp 定义了获取用户信息的请求和响应。
 type (
+	// UserInfoReq 是一个空结构体，因为获取用户信息不需要额外参数，
+	// 用户身份通过请求头中的 JWT 令牌来识别。
 	UserInfoReq {
 	}
+	// UserInfoResp 定义了用户详细信息的响应。
 	UserInfoResp {
+		// 用户的详细信息。
 		UserInfo User `json:"userInfo"`
 	}
 )

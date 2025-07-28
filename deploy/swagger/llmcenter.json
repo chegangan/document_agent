@@ -1,0 +1,318 @@
+{
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "schemes": [
+    "https"
+  ],
+  "swagger": "2.0",
+  "info": {
+    "title": "大语言模型中心服务",
+    "version": "v1"
+  },
+  "basePath": "/",
+  "paths": {
+    "/llmcenter/v1/chat/completions": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "summary": "发起新对话或在现有对话中发送消息 (SSE 流式响应)",
+        "operationId": "chatChatCompletions",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "prompt"
+              ],
+              "properties": {
+                "conversation_id": {
+                  "type": "string"
+                },
+                "knowledge_base_id": {
+                  "type": "string"
+                },
+                "prompt": {
+                  "type": "string"
+                },
+                "references": {
+                  "description": "llm.api 中定义的 Reference 结构",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "type",
+                      "file_id"
+                    ],
+                    "properties": {
+                      "file_id": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "use_knowledge_base": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "/llmcenter/v1/chat/resume": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "summary": "在工作流中断后, 发送用户编辑好的内容以继续流程 (SSE 流式响应)",
+        "operationId": "chatChatResume",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "conversation_id",
+                "content"
+              ],
+              "properties": {
+                "content": {
+                  "type": "string"
+                },
+                "conversation_id": {
+                  "type": "string"
+                },
+                "template_id": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "/llmcenter/v1/conversations": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "summary": "获取当前用户的会话列表",
+        "operationId": "conversationGetConversations",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "description": "llm.api 中定义的 Conversation 结构",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "conversation_id",
+                      "title",
+                      "updated_at"
+                    ],
+                    "properties": {
+                      "conversation_id": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "updated_at": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/llmcenter/v1/conversations/{conversation_id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "summary": "根据会话ID获取指定会话的详细历史消息",
+        "operationId": "conversationGetConversationDetail",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "conversation_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "conversation_id": {
+                  "type": "string"
+                },
+                "history": {
+                  "description": "llm.api 中定义的 Message 结构",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "role",
+                      "content",
+                      "content_type",
+                      "created_at"
+                    ],
+                    "properties": {
+                      "content": {
+                        "type": "string"
+                      },
+                      "content_type": {
+                        "type": "string"
+                      },
+                      "created_at": {
+                        "type": "string"
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "role": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "title": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/llmcenter/v1/files": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "summary": "根据相对路径获取/下载文件",
+        "operationId": "fileGetFile",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "path",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "/llmcenter/v1/files/upload": {
+      "post": {
+        "consumes": [
+          "application/x-www-form-urlencoded"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "summary": "上传文件 (multipart/form-data), 用于知识库或对话引用。请求体中文件的 key 应为 'file'。",
+        "operationId": "fileFileUpload",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "file_id": {
+                  "type": "string"
+                },
+                "file_name": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "x-date": "2025-07-25 20:55:05",
+  "x-description": "This is a goctl generated swagger file.",
+  "x-github": "https://github.com/zeromicro/go-zero",
+  "x-go-zero-doc": "https://go-zero.dev/",
+  "x-goctl-version": "1.8.4"
+}

@@ -1,5 +1,7 @@
+// syntax = "v1" 声明了此 .api 文件的语法版本。
 syntax = "v1"
 
+// info 块定义了 API 的元数据，这些信息将展示在 Swagger UI 的顶部。
 info (
 	title:   "大语言模型中心服务"
 	desc:    "LLM Center 的 API 定义, 包含聊天、文件管理和历史记录功能"
@@ -8,100 +10,144 @@ info (
 	version: "v1"
 )
 
+// 导入其他 .api 文件，这里用于模块化管理。
 import (
 	"llm/llm.api"
 )
 
 // ================== 接口请求与响应 (Requests & Responses) ==================
-// --- 聊天接口 ---
+
+// --- 聊天接口 (Chat Interfaces) ---
+
+// ChatCompletionsRequest 定义了发起聊天的请求结构。
 type ChatCompletionsRequest {
-	ConversationID   string      `json:"conversation_id,optional"` // 可选, 现有会话ID。如果为空，后端将创建新会话
-	Prompt           string      `json:"prompt"` // 必选, 用户输入的文本内容
-	UseKnowledgeBase bool        `json:"use_knowledge_base,optional"` // 可选, 是否使用自定义知识库
-	KnowledgeBaseID  string      `json:"knowledge_base_id,optional"` // 可选, 如果 use_knowledge_base 为 true, 则需要提供知识库ID
-	References       []Reference `json:"references,optional"` // 可选, 引用列表
+	// 可选, 现有会话的ID。如果为空，后端将创建一个新的会话。
+	ConversationID   string      `json:"conversation_id,optional"`
+	// 必选, 用户输入的文本内容或问题。
+	Prompt           string      `json:"prompt"`
+	// 可选, 是否使用自定义知识库进行回答。默认为 false。
+	UseKnowledgeBase bool        `json:"use_knowledge_base,optional"`
+	// 可选, 如果 use_knowledge_base 为 true, 则必须提供知识库ID。
+	KnowledgeBaseID  string      `json:"knowledge_base_id,optional"`
+	// 可选, 用户上传的与本次提问相关的引用文件列表。
+	References       []Reference `json:"references,optional"` // llm.api 中定义的 Reference 结构
 }
 
-// ChatCompletionsResponse 为空, 因为此接口使用 SSE 流式响应。
-// 后端逻辑 (logic) 需要直接操作 http.ResponseWriter 来发送流式事件。
-// 可能发送的事件数据结构包括: SSEMessageEvent, SSEInterruptEvent, SSEEndEvent。
+// ChatCompletionsResponse 为空, 因为此接口使用 SSE (Server-Sent Events) 进行流式响应。
+// 后端逻辑 (logic) 会直接操作 http.ResponseWriter 来发送一系列事件。
+// Swagger/OpenAPI 文档中通常会将响应体描述为 "text/event-stream"。
 type ChatCompletionsResponse {}
 
-// --- 继续聊天流程接口 ---
+// ChatResumeRequest 定义了在工作流中断后继续聊天的请求结构。
 type ChatResumeRequest {
-	ConversationID string `json:"conversation_id"` // 必选, 当前会话的ID
-	Content        string `json:"content"` // 必选, 用户在前端编辑器中确认后的完整内容
-	TemplateID     string `json:"template_id,optional"` // 可选, 如果用户在这一步选择了模板
+	// 必选, 需要继续的当前会话的ID。
+	ConversationID string `json:"conversation_id"`
+	// 必选, 用户在前端编辑器中确认或修改后的完整内容。
+	Content        string `json:"content"`
+	// 可选, 如果用户在此步骤中选择了某个特定模板来格式化内容。
+	TemplateID     string `json:"template_id,optional"`
 }
 
-// ChatResumeResponse 为空, 因为此接口同样使用 SSE 流式响应。
-// 后端逻辑 (logic) 将直接推送 SSEMessageEvent 和 SSEEndEvent 事件。
+// ChatResumeResponse 为空, 因为此接口同样使用 SSE 进行流式响应。
+// 后端逻辑将直接推送事件流。
 type ChatResumeResponse {}
 
-// --- 文件上传接口 ---
-// 请求体格式为 multipart/form-data, 文件字段的键 (key) 为 "file"。
-// 在 logic 代码中需要手动处理文件解析: r.ParseMultipartForm() 和 r.FormFile("file")。
+
+// --- 文件管理接口 (File Management Interfaces) ---
+
+// FileUploadRequest 是一个空结构体, 因为文件上传的请求体格式是 multipart/form-data。
+// goctl 会将其识别为文件上传接口。
+// 在后端逻辑代码中, 需要通过 r.ParseMultipartForm() 和 r.FormFile("file") 来手动解析上传的文件。
+// Swagger 文档会正确地将请求体（requestBody）渲染为包含文件上传控件的表单。
 type FileUploadRequest {}
 
-// 这里需要写一个定时清除file的函数，同时也清除数据库的id
+// FileUploadResponse 定义了文件上传成功后的响应。
 type FileUploadResponse {
-	FileID   string `json:"file_id"` // 后端生成的唯一文件ID
-	FileName string `json:"file_name"` // 原始文件名
-	URL      string `json:"url,optional"` // 文件的可访问URL
-	Message  string `json:"message"` // 成功消息
+	// 后端为上传文件生成的唯一标识符。
+	FileID   string `json:"file_id"`
+	// 上传的原始文件名。
+	FileName string `json:"file_name"`
+	// 文件的可访问URL (如果适用)。
+	URL      string `json:"url,optional"`
+	// 操作成功的提示消息。
+	Message  string `json:"message"`
 }
 
-// --- 历史记录接口 ---
+// --- 历史记录接口 (History Interfaces) ---
+
+// GetConversationsRequest 是一个空结构体，表示获取会话列表不需要任何请求参数。
 type GetConversationsRequest {}
 
+// GetConversationsResponse 定义了会话列表的响应。
 type GetConversationsResponse {
-	Data []Conversation `json:"data"` // 会话列表
+	// 当前用户的所有会话列表。
+	Data []Conversation `json:"data"` // llm.api 中定义的 Conversation 结构
 }
 
+// GetConversationDetailRequest 定义了获取单个会话详情的请求。
 type GetConversationDetailRequest {
-	ConversationID string `path:"conversation_id"` // 从 URL 路径中获取会话ID
+	// 会话ID, 从 URL 路径中动态获取 (e.g., /conversations/xxx-yyy-zzz)。
+	ConversationID string `path:"conversation_id"`
 }
 
+// GetConversationDetailResponse 定义了单个会话的详细内容。
 type GetConversationDetailResponse {
+	// 会话的唯一ID。
 	ConversationID string    `json:"conversation_id"`
+	// 会话的标题, 通常是根据第一轮对话生成的。
 	Title          string    `json:"title"`
-	History        []Message `json:"history"` // 详细消息历史
+	// 会话的详细消息历史记录。
+	History        []Message `json:"history"` // llm.api 中定义的 Message 结构
 }
 
+// GetFileReq 定义了获取文件的请求。
 type GetFileReq {
-	Path string `form:"path"` // ← 用 form，而不是 query
+	// 要获取文件的相对路径。goctl 的 `form` 标签在这里会生成 URL query 参数 (e.g., /files?path=uploads/report.pdf)。
+	Path string `form:"path"`
 }
 
+// EmptyResp 是一个空响应体。
+// 通常用于文件下载等场景, 响应体是文件流, 而不是 JSON 数据。
 type EmptyResp {}
 
+
 // ================== 服务定义 (Service Definition) ==================
-// 所有接口都需要 JWT 认证
+// 使用 @server 定义一组相关的 API。所有接口都需要 JWT 认证。
+
+// @server 注解用于定义服务配置。
+// prefix: 所有在此块中定义的路由都会加上这个前缀。
+// group:  为生成的 handler 和 logic 文件指定一个子目录名, 便于组织代码。
+// jwt:    指定用于 JWT 鉴权的配置项 (在配置文件中的 Auth 部分)。
 @server (
 	prefix: /llmcenter/v1
 	group:  chat
 	jwt:    Auth
 )
 service llmcenter {
-	@doc "发起新对话或在现有对话中发送消息"
+	// @doc 注解的内容会成为 Swagger 中的接口描述 (description)。
+	// @handler 指定了此路由对应的 handler 方法名。
+	@doc "发起新对话或在现有对话中发送消息 (SSE 流式响应)"
 	@handler chatCompletions
 	post /chat/completions (ChatCompletionsRequest) returns (ChatCompletionsResponse)
 
-	@doc "在工作流中断后, 发送用户编辑好的内容以继续流程"
+	@doc "在工作流中断后, 发送用户编辑好的内容以继续流程 (SSE 流式响应)"
 	@handler chatResume
 	post /chat/resume (ChatResumeRequest) returns (ChatResumeResponse)
 }
 
+// 备注: 后端需要实现一个定时任务，用于清理过期的临时文件及其在数据库中的记录，
+// 确保系统存储的整洁性。
 @server (
 	prefix: /llmcenter/v1
 	group:  file
 	jwt:    Auth
 )
 service llmcenter {
-	@doc "上传文件, 用于后续对话"
+	@doc "上传文件 (multipart/form-data), 用于知识库或对话引用。请求体中文件的 key 应为 'file'。"
 	@handler fileUpload
 	post /files/upload (FileUploadRequest) returns (FileUploadResponse)
 
-	@doc "按相对路径获取文件"
+	@doc "根据相对路径获取/下载文件"
 	@handler getFile
 	get /files (GetFileReq) returns (EmptyResp)
 }
@@ -116,8 +162,7 @@ service llmcenter {
 	@handler getConversations
 	get /conversations (GetConversationsRequest) returns (GetConversationsResponse)
 
-	@doc "获取指定会话的详细历史消息"
+	@doc "根据会话ID获取指定会话的详细历史消息"
 	@handler getConversationDetail
 	get /conversations/:conversation_id (GetConversationDetailRequest) returns (GetConversationDetailResponse)
 }
-

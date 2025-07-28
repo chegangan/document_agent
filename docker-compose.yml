@@ -127,6 +127,24 @@ services:
       - ETCD_ADVERTISE_CLIENT_URLS=http://etcd:2379
     restart: always
 
+  # --- Swagger UI Service ---
+  swagger-ui:
+    image: swaggerapi/swagger-ui
+    container_name: swagger-ui
+    ports:
+      - "8002:8080"
+    networks:
+      - document_agent_net
+    volumes:
+      # 将存放 swagger json 文件的目录挂载到容器中
+      - ./deploy/swagger:/usr/share/nginx/html/swagger-files
+    environment:
+      # 这里配置你的 swagger json 文件，可以有多个
+      # url: 是容器内的路径，name: 是在UI下拉菜单中显示的名字
+      # !!! 请将下面的 usercenter.json 和 llmcenter.json 替换为您实际的文件名 !!!
+      URLS: "[ { url: '/swagger-files/usercenter.json', name: '用户中心 API' }, { url: '/swagger-files/llmcenter.json', name: '大模型中心 API' } ]"
+    restart: always
+
 volumes:
   mysql-data:
   redis-data:

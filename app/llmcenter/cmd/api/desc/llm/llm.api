@@ -1,55 +1,75 @@
+// 声明 .api 文件的语法版本。
 syntax = "v1"
 
+// info 块定义了 API 的元数据。
 info(
-	title: "大模型实例"
-	desc: "大模型实例"
-	author: "Chegan"
-	email: "chegangan123@gmail.com"
+	title:   "大模型实例"
+	desc:    "定义了大语言模型(LLM)服务中通用的数据结构，如消息、会话和流式事件。"
+	author:  "Chegan"
+	email:   "chegangan123@gmail.com"
     version: "v1"
 )
 
 
 // ================== 通用数据结构 (Data Structures) ==================
 
-// Reference - 对话中引用的对象
+// Reference 定义了在对话中可能引用的外部对象。
 type Reference {
-	Type   string `json:"type"`    // 引用类型, 例如: "file"
-	FileID string `json:"file_id"` // 文件ID
+	// 引用类型，用于区分不同来源的引用。例如: "file"。
+	Type   string `json:"type"`
+	// 被引用文件的唯一ID。
+	FileID string `json:"file_id"`
 }
 
-// Conversation - 会话列表中的单个会话
+// Conversation 定义了会话列表中的单个会话概览。
 type Conversation {
-	ConversationID string `json:"conversation_id"` // 会话ID
-	Title          string `json:"title"`           // 会话标题
-	UpdatedAt      string `json:"updated_at"`      // 更新时间 (RFC3339)
+	// 会话的唯一ID。
+	ConversationID string `json:"conversation_id"`
+	// 会话的标题，通常根据首次对话内容自动生成。
+	Title          string `json:"title"`
+	// 会话的最后更新时间，格式为 RFC3339 (例如: "2023-01-01T15:04:05Z")。
+	UpdatedAt      string `json:"updated_at"`
 }
 
-// Message - 单条历史消息
+// Message 定义了会话中的一条独立消息。
 type Message {
-	ID          string `json:"id"`           // 消息ID
-	Role        string `json:"role"`         // 角色: "user" 或 "assistant"
-	Content     string `json:"content"`      // 消息内容
-	ContentType string `json:"content_type"` // 内容类型, 例如: "text", "document_outline", "final_document"
-	CreatedAt   string `json:"created_at"`   // 创建时间 (RFC3339)
+	// 消息的唯一ID。
+	ID          string `json:"id"`
+	// 消息发送者的角色。 "user" 代表用户, "assistant" 代表 AI 助手。
+	Role        string `json:"role"`
+	// 消息的文本内容。
+	Content     string `json:"content"`
+	// 消息内容的具体类型，用于前端进行不同的渲染。例如: "text", "document_outline", "final_document"。
+	ContentType string `json:"content_type"`
+	// 消息的创建时间，格式为 RFC3339。
+	CreatedAt   string `json:"created_at"`
 }
 
 // ================== 流式响应事件 (Server-Sent Events) ==================
+// 以下是后端通过 SSE (Server-Sent Events) 推送给前端的事件数据结构。
 
-// SSEMessageEvent - message 事件的数据体
+// SSEMessageEvent 定义了 "message" 事件的数据体，用于流式传输文本。
 type SSEMessageEvent {
-	Chunk string `json:"chunk"` // 流式返回的文本片段
+	// AI 生成的文本片段 (chunk)，前端需要将这些片段拼接起来形成完整回复。
+	Chunk string `json:"chunk"`
 }
 
-// SSEInterruptEvent - interrupt 事件的数据体
+// SSEInterruptEvent 定义了 "interrupt" 事件的数据体，表示流程中断，需要用户交互。
 type SSEInterruptEvent {
+	// 当前会话的ID。
 	ConversationID string `json:"conversation_id"`
+	// 当前消息的ID。
 	MessageID      string `json:"message_id"`
-	ContentType    string `json:"content_type"` // 内容类型, 例如 "document_outline"
-	Content        string `json:"content"`      // 需要填入编辑器的内容清单
+	// 需要前端渲染的内容类型，例如 "document_outline"，表示这是一个文档大纲。
+	ContentType    string `json:"content_type"`
+	// 需要填充到前端编辑器中的具体内容，通常是一个结构化的字符串或 JSON。
+	Content        string `json:"content"`
 }
 
-// SSEEndEvent - end 事件的数据体
+// SSEEndEvent 定义了 "end" 事件的数据体，表示一次完整的 AI 响应结束。
 type SSEEndEvent {
-	ConversationID string `json:"conversation_id"` // 本次交互所属的会话ID
-	MessageID      string `json:"message_id"`      // 本次交互最终生成的完整消息ID
+	// 本次交互所属的会话ID，方便前端进行状态同步。
+	ConversationID string `json:"conversation_id"`
+	// 本次交互最终生成的完整消息的ID。
+	MessageID      string `json:"message_id"`
 }

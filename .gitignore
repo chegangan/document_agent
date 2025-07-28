@@ -17,4 +17,6 @@ data/*
 .vscode
 .vscode/
 
+*.tar
 
+*.tar.gz

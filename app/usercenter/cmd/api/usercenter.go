@@ -24,6 +24,7 @@ func main() {
 		rest.WithCors("*"),
 		rest.WithCorsHeaders("Content-Type", "Authorization"),
 	)
+
 	defer server.Stop()
 
 	ctx := svc.NewServiceContext(c)
