@@ -50,7 +50,6 @@ func (l *FileUploadLogic) FileUpload(form *multipart.Form) (*types.FileUploadRes
 		fmt.Println("apierror")
 		return nil, err
 	}
-	fmt.Println("api")
 
 	// 发送 FileInfo
 	err = stream.Send(&pb.FileUploadRequest{
