@@ -58,7 +58,7 @@ services:
       - etcd
     volumes:
       - ./deploy/etc/llmcenterapi.yaml:/app/etc/llmcenter.yaml
-      - ./data/static:/app/data/static
+      - ./data/static:/data/static
     environment:
       - TZ=Asia/Shanghai
     restart: always
@@ -78,7 +78,7 @@ services:
     volumes:
       # 同样挂载，确保 RPC 服务能访问到 API 服务上传的文件
       - ./deploy/etc/llmcenterrpc.yaml:/app/etc/llmcenter.yaml
-      - ./data/static:/app/data/static
+      - ./data/static:/data/static
     environment:
       - TZ=Asia/Shanghai
     restart: always
