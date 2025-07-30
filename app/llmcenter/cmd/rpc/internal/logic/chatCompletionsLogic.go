@@ -40,42 +40,26 @@ func NewChatCompletionsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *C
 
 // ChatCompletions 是处理聊天请求的核心 RPC 方法
 func (l *ChatCompletionsLogic) ChatCompletions(in *pb.ChatCompletionsRequest, stream pb.LlmCenter_ChatCompletionsServer) error {
-	// 2. 获取或创建会话，并获取历史消息
+	// 1. 获取或创建会话，并获取历史消息
 	conversationID, historyMessages, err := l.getOrCreateConversation(in.UserId, in.ConversationId, in.Prompt)
 	if err != nil {
 		return err
 	}
 
-	// 3. 保存当前用户发送的消息
-	userMessage := &model.Messages{
-		MessageId:      tool.GenerateULID(),
-		ConversationId: conversationID,
-		Role:           "user",
-		Content:        in.Prompt,
-		ContentType:    "text",
+	// 2. 保存当前用户发送的消息
+	if err := l.saveUserMessage(conversationID, in.Prompt); err != nil {
+		return err
 	}
-	_, err = l.svcCtx.MessageModel.Insert(l.ctx, userMessage)
+
+	// 3. 处理文件上传（如图片）
+	imgURL, err := l.handleFileUploads(in.References)
 	if err != nil {
-		return fmt.Errorf("ChatCompletions db message Insert err:%+v, message:%+v: %w", err, userMessage, xerr.ErrDbError)
+		// 仅记录错误，不中断流程
+		l.Errorf("handleFileUploads failed: %v", err)
 	}
 
-	prompt := in.Prompt
-	var imgUrl string
-
-	for _, ref := range in.References {
-		if ref.Type == "file" {
-			localPath := filepath.Join(l.svcCtx.Config.Upload.BaseDir, ref.FileId)
-			url, err := uploadImageToXingHuo(localPath, l.svcCtx.Config.XingChen.ApiKey, l.svcCtx.Config.XingChen.ApiSecret)
-			if err != nil {
-				l.Errorf("图片上传失败：file_id=%s err=%v", ref.FileId, err)
-				continue
-			}
-			imgUrl = url
-		}
-	}
-
-	llmReq := l.buildLLMRequest(in.UserId, conversationID, prompt, historyMessages, imgUrl)
-
+	// 4. 构建对大模型的请求
+	llmReq := l.buildLLMRequest(in.UserId, conversationID, in.Prompt, historyMessages, imgURL)
 	reqBody, err := json.Marshal(llmReq)
 	if err != nil {
 		l.Errorf("failed to marshal llm request: %v :%w", err, xerr.ErrRequestParam)
@@ -84,6 +68,45 @@ func (l *ChatCompletionsLogic) ChatCompletions(in *pb.ChatCompletionsRequest, st
 
 	// 5. 调用大模型 API 并处理流式响应
 	return l.processLLMStream(reqBody, stream, conversationID, in.References)
+}
+
+// saveUserMessage 保存用户消息到数据库
+func (l *ChatCompletionsLogic) saveUserMessage(conversationID, prompt string) error {
+	userMessage := &model.Messages{
+		MessageId:      tool.GenerateULID(),
+		ConversationId: conversationID,
+		Role:           "user",
+		Content:        prompt,
+		ContentType:    "text",
+	}
+	_, err := l.svcCtx.MessageModel.Insert(l.ctx, userMessage)
+	if err != nil {
+		return fmt.Errorf("saveUserMessage db message Insert err:%+v, message:%+v: %w", err, userMessage, xerr.ErrDbError)
+	}
+	return nil
+}
+
+// handleFileUploads 处理文件上传并返回文件URL
+func (l *ChatCompletionsLogic) handleFileUploads(references []*pb.Reference) (string, error) {
+	if len(references) == 0 {
+		return "", nil
+	}
+	var imgURL string
+	var lastErr error
+	for _, ref := range references {
+		if ref.Type == "file" {
+			localPath := filepath.Join(l.svcCtx.Config.Upload.BaseDir, ref.FileId)
+			url, err := uploadImageToXingHuo(localPath, l.svcCtx.Config.XingChen.ApiKey, l.svcCtx.Config.XingChen.ApiSecret)
+			if err != nil {
+				l.Errorf("图片上传失败：file_id=%s err=%v", ref.FileId, err)
+				lastErr = err // 记录最后一次错误
+				continue
+			}
+			imgURL = url // 目前只支持一张图片
+			break
+		}
+	}
+	return imgURL, lastErr
 }
 
 // getOrCreateConversation 	获取或创建会话，并获取历史消息
@@ -159,28 +182,24 @@ func (l *ChatCompletionsLogic) buildLLMRequest(userID int64, convID, prompt stri
 }
 
 // processLLMStream 调用大模型API，处理返回的流，并推送到客户端gRPC流
+// processLLMStream 调用大模型API，处理返回的流，并推送到客户端gRPC流
 func (l *ChatCompletionsLogic) processLLMStream(reqBody []byte, stream pb.LlmCenter_ChatCompletionsServer, conversationID string, references []*pb.Reference) error {
 	apiURL := l.svcCtx.Config.XingChen.ApiURL
 	apiKey := l.svcCtx.Config.XingChen.ApiKey
 	apiSecret := l.svcCtx.Config.XingChen.ApiSecret
 	authToken := fmt.Sprintf("Bearer %s:%s", apiKey, apiSecret)
 
-	// 优化点 2：使用 http.NewRequestWithContext 传递上下文
-	// l.ctx 是从 gRPC 请求中来的，如果 gRPC 连接断开，l.ctx 会被取消。
 	req, err := http.NewRequestWithContext(l.ctx, "POST", apiURL, bytes.NewReader(reqBody))
 	if err != nil {
-		// 注意：如果 l.ctx 此时已经被取消，这里会立刻返回错误
 		return fmt.Errorf("failed to create http request with context: %+v:%w", err, xerr.ErrLLMApiCancel)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", authToken)
 	req.Header.Set("Accept", "text/event-stream")
 
-	// 优化点 1：使用在 ServiceContext 中初始化的可复用 HTTP 客户端
 	client := l.svcCtx.LlmApiClient
 	resp, err := client.Do(req)
 	if err != nil {
-		// 如果是因为 context 取消导致的错误，日志会记录下来，函数会优雅退出。
 		return fmt.Errorf("failed to call llm api: %+v:%w", err, xerr.ErrLLMApiCancel)
 	}
 	defer resp.Body.Close()
@@ -191,54 +210,49 @@ func (l *ChatCompletionsLogic) processLLMStream(reqBody []byte, stream pb.LlmCen
 			resp.StatusCode, string(bodyBytes), xerr.ErrLLMApiError)
 	}
 
-	scanner := bufio.NewScanner(resp.Body)
+	assistantReply, err := l.handleStreamEvents(resp.Body, stream, conversationID)
+	if err != nil {
+		return err
+	}
+
+	assistantMessageID, err := l.saveAssistantMessage(conversationID, assistantReply, references)
+	if err != nil {
+		// 保存失败也应通知前端结束，所以只记录日志不返回错误
+		l.Errorf("saveAssistantMessage failed: %v", err)
+	}
+
+	return l.sendEndEvent(stream, conversationID, assistantMessageID)
+}
+
+// handleStreamEvents 处理从LLM返回的SSE事件流
+func (l *ChatCompletionsLogic) handleStreamEvents(body io.Reader, stream pb.LlmCenter_ChatCompletionsServer, conversationID string) (string, error) {
+	scanner := bufio.NewScanner(body)
 	var assistantReply strings.Builder
-	var assistantMessageID string
 
 	for scanner.Scan() {
 		line := scanner.Text()
-		if line == "" {
+		if line == "" || !strings.HasPrefix(line, "data: ") {
 			continue
 		}
 
-		var apiResp types.LLMApiResponse
 		line = strings.TrimPrefix(line, "data: ")
+		var apiResp types.LLMApiResponse
 		if err := json.Unmarshal([]byte(line), &apiResp); err != nil {
 			l.Errorf("failed to unmarshal llm stream line: %s, error: %v", line, err)
 			continue
 		}
 
 		if apiResp.Code != 0 {
-			// 可以选择向客户端发送一个错误事件，或者直接中断
-			return fmt.Errorf("LLM API error response: code=%d, message=%s :%w",
+			return "", fmt.Errorf("LLM API error response: code=%d, message=%s :%w",
 				apiResp.Code, apiResp.Message, xerr.ErrLLMApiError)
 		}
 
-		// 检查是否是中断事件
+		// 处理中断事件
 		if apiResp.EventData != nil && apiResp.EventData.EventType == "interrupt" {
-			// 将会话ID和中断事件ID存入Redis，过期时间20分钟
-			redisKey := fmt.Sprintf("llm:interrupt:%s", conversationID)
-			// 使用 Setex 方法设置带过期时间的键
-			// 1200 秒 = 20 分钟
-			err := l.svcCtx.RedisClient.Setex(redisKey, apiResp.EventData.EventID, 1200)
-			if err != nil {
-				// 记录错误并返回，因为redis无法设置eventid
-				return fmt.Errorf("failed to set interrupt key in redis for conv %s: %v :%w",
-					conversationID, err, xerr.ErrLLMInterruptEventNotSet)
+			if err := l.handleInterruptEvent(&apiResp, stream, conversationID); err != nil {
+				return "", err
 			}
-			l.Infof("Interrupt event received for conv %s. Storing EventID %s in Redis.", conversationID, apiResp.EventData.EventID)
-
-			// 向客户端发送中断事件
-			interruptEvent := &pb.SSEInterruptEvent{
-				ConversationId: conversationID,
-				// MessageId:      ... // 可以生成一个临时的ID
-				ContentType: "document_outline",
-				Content:     apiResp.EventData.Value.Content,
-			}
-			if err := stream.Send(&pb.ChatCompletionsResponse{Event: &pb.ChatCompletionsResponse_Interrupt{Interrupt: interruptEvent}}); err != nil {
-				return fmt.Errorf("failed to send interrupt event to client: %v:%w", err, xerr.ErrLLMInterruptEventNotSet)
-			}
-			return nil // 中断后，当前流式交互结束
+			return "", nil // 中断后，当前流式交互结束，返回空字符串表示没有完整回复
 		}
 
 		// 处理正常消息流
@@ -246,59 +260,86 @@ func (l *ChatCompletionsLogic) processLLMStream(reqBody []byte, stream pb.LlmCen
 			chunk := apiResp.Choices[0].Delta.Content
 			if chunk != "" {
 				assistantReply.WriteString(chunk)
-				// 向客户端发送消息块
 				messageEvent := &pb.SSEMessageEvent{Chunk: chunk}
 				if err := stream.Send(&pb.ChatCompletionsResponse{Event: &pb.ChatCompletionsResponse_Message{Message: messageEvent}}); err != nil {
-					return fmt.Errorf("failed to send message chunk to client: %v:%w",
-						err, xerr.ErrLLMApiCancel)
+					return "", fmt.Errorf("failed to send message chunk to client: %v:%w", err, xerr.ErrLLMApiCancel)
 				}
 			}
-
-			// 检查是否是结束帧
 			if apiResp.Choices[0].FinishReason == "stop" {
-				break // 正常结束，跳出循环
+				break // 正常结束
 			}
 		}
 	}
 
 	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("error reading llm stream: %v:%w", err, xerr.ErrLLMApiError)
+		return "", fmt.Errorf("error reading llm stream: %v:%w", err, xerr.ErrLLMApiError)
 	}
 
-	// 6. 保存完整的助手回复,这里注意如果用户信息有图片，也需要把url存进去
+	return assistantReply.String(), nil
+}
+
+// handleInterruptEvent 处理中断事件
+func (l *ChatCompletionsLogic) handleInterruptEvent(apiResp *types.LLMApiResponse, stream pb.LlmCenter_ChatCompletionsServer, conversationID string) error {
+	redisKey := fmt.Sprintf("llm:interrupt:%s", conversationID)
+	// 1200 秒 = 20 分钟
+	err := l.svcCtx.RedisClient.Setex(redisKey, apiResp.EventData.EventID, 1200)
+	if err != nil {
+		return fmt.Errorf("failed to set interrupt key in redis for conv %s: %v :%w",
+			conversationID, err, xerr.ErrLLMInterruptEventNotSet)
+	}
+	l.Infof("Interrupt event received for conv %s. Storing EventID %s in Redis.", conversationID, apiResp.EventData.EventID)
+
+	interruptEvent := &pb.SSEInterruptEvent{
+		ConversationId: conversationID,
+		ContentType:    "document_outline",
+		Content:        apiResp.EventData.Value.Content,
+	}
+	if err := stream.Send(&pb.ChatCompletionsResponse{Event: &pb.ChatCompletionsResponse_Interrupt{Interrupt: interruptEvent}}); err != nil {
+		return fmt.Errorf("failed to send interrupt event to client: %v:%w", err, xerr.ErrLLMInterruptEventNotSet)
+	}
+	return nil
+}
+
+// saveAssistantMessage 保存助手回复到数据库
+func (l *ChatCompletionsLogic) saveAssistantMessage(conversationID string, reply string, references []*pb.Reference) (string, error) {
+	if reply == "" { // 如果没有回复内容（例如，在中断事件后），则不保存
+		return "", nil
+	}
+
 	referencesData, err := json.Marshal(references)
 	if err != nil {
-		return fmt.Errorf("failed to marshal references: %v:%w", err, xerr.ErrRequestParam)
+		return "", fmt.Errorf("failed to marshal references: %v:%w", err, xerr.ErrRequestParam)
 	}
-	referencesDataStr := string(referencesData)
-	assistantMessageID = tool.GenerateULID()
+
+	assistantMessageID := tool.GenerateULID()
 	assistantMessage := &model.Messages{
 		MessageId:      assistantMessageID,
 		ConversationId: conversationID,
 		Role:           "assistant",
-		Content:        assistantReply.String(),
+		Content:        reply,
 		ContentType:    "document_outline",
 		Metadata: sql.NullString{
-			String: referencesDataStr, // 正确地创建 sql.NullString 实例
-			Valid:  true,
+			String: string(referencesData),
+			Valid:  len(referencesData) > 0 && string(referencesData) != "null",
 		},
 	}
 
 	_, err = l.svcCtx.MessageModel.Insert(l.ctx, assistantMessage)
 	if err != nil {
-		l.Errorf("saveAssistantMessage failed: %v", err)
-		// 即使保存失败，也应该通知前端结束，所以不在这里 return err
+		return "", fmt.Errorf("saveAssistantMessage db Insert err:%+v, message:%+v: %w", err, assistantMessage, xerr.ErrDbError)
 	}
+	return assistantMessageID, nil
+}
 
-	// 7. 向客户端发送结束事件。客户端需要在resume结束之后手动创建新的对话
+// sendEndEvent 向客户端发送结束事件
+func (l *ChatCompletionsLogic) sendEndEvent(stream pb.LlmCenter_ChatCompletionsServer, conversationID, messageID string) error {
 	endEvent := &pb.SSEEndEvent{
 		ConversationId: conversationID,
-		MessageId:      assistantMessageID,
+		MessageId:      messageID,
 	}
 	if err := stream.Send(&pb.ChatCompletionsResponse{Event: &pb.ChatCompletionsResponse_End{End: endEvent}}); err != nil {
 		return fmt.Errorf("failed to send end event to client: %v:%w", err, xerr.ErrLLMApiCancel)
 	}
-
 	return nil
 }
 

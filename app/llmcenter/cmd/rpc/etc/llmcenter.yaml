@@ -31,4 +31,4 @@ Redis:
   Key: llmcenter:redis
   
 Upload:
-  BaseDir: D:/vsproject/document_agent/data/static
+  BaseDir: data/static
