@@ -1,17 +1,20 @@
 package logic
 
 import (
+	"archive/zip"
 	"bufio"
 	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"document_agent/app/llmcenter/cmd/rpc/internal/svc"
@@ -21,6 +24,7 @@ import (
 	"document_agent/pkg/tool"
 	"document_agent/pkg/xerr"
 
+	"github.com/ledongthuc/pdf"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
@@ -52,14 +56,55 @@ func (l *ChatCompletionsLogic) ChatCompletions(in *pb.ChatCompletionsRequest, st
 	}
 
 	// 3. 处理文件上传（如图片）
-	imgURL, err := l.handleFileUploads(in.References)
-	if err != nil {
-		// 仅记录错误，不中断流程
-		l.Errorf("handleFileUploads failed: %v", err)
+	prompt := in.Prompt
+	var imgUrl string
+	re1 := regexp.MustCompile(`(?i)\.(jpg|png)$`)
+	re2 := regexp.MustCompile(`(?i)\.(txt|md|csv|docx|pdf)$`)
+
+	for _, ref := range in.References {
+		if ref.Type == "file" && re1.MatchString(ref.FileId) {
+			localPath := filepath.Join(l.svcCtx.Config.Upload.BaseDir, ref.FileId)
+			url, err := uploadImageToXingHuo(localPath, l.svcCtx.Config.XingChen.ApiKey, l.svcCtx.Config.XingChen.ApiSecret)
+			if err != nil {
+				l.Errorf("图片上传失败：file_id=%s err=%v", ref.FileId, err)
+				continue
+			}
+			imgUrl = url
+		} else if ref.Type == "file" && re2.MatchString(ref.FileId) {
+			localPath := filepath.Join(l.svcCtx.Config.Upload.BaseDir, ref.FileId)
+			ext := strings.ToLower(filepath.Ext(ref.FileId))
+
+			var content string
+			switch ext {
+			case ".txt", ".md", ".csv":
+				content, err = readTextFile(localPath)
+			case ".docx":
+				content, err = readDocxFile(localPath)
+			case ".pdf":
+				content, err = readPdfFile(localPath)
+			default:
+				content = "[不支持的文件格式]"
+			}
+
+			if err != nil {
+				l.Errorf("读取文件失败：file_id=%s err=%v", ref.FileId, err)
+				continue
+			} else {
+				if len(content) > 5000 {
+					// 如果内容超过2000字符，后期可以加入知识库再检索
+					content = content[:5000] + "...(已截断)"
+					prompt += fmt.Sprintf(" \n用户提供了一份%s文件：%s。", ext, content)
+				} else {
+					prompt += fmt.Sprintf(" \n用户提供了一份%s文件：%s。", ext, content)
+				}
+			}
+		}
 	}
 
-	// 4. 构建对大模型的请求
-	llmReq := l.buildLLMRequest(in.UserId, conversationID, in.Prompt, historyMessages, imgURL)
+	fmt.Println(prompt)
+
+	llmReq := l.buildLLMRequest(in.UserId, conversationID, prompt, historyMessages, imgUrl)
+
 	reqBody, err := json.Marshal(llmReq)
 	if err != nil {
 		l.Errorf("failed to marshal llm request: %v :%w", err, xerr.ErrRequestParam)
@@ -84,29 +129,6 @@ func (l *ChatCompletionsLogic) saveUserMessage(conversationID, prompt string) er
 		return fmt.Errorf("saveUserMessage db message Insert err:%+v, message:%+v: %w", err, userMessage, xerr.ErrDbError)
 	}
 	return nil
-}
-
-// handleFileUploads 处理文件上传并返回文件URL
-func (l *ChatCompletionsLogic) handleFileUploads(references []*pb.Reference) (string, error) {
-	if len(references) == 0 {
-		return "", nil
-	}
-	var imgURL string
-	var lastErr error
-	for _, ref := range references {
-		if ref.Type == "file" {
-			localPath := filepath.Join(l.svcCtx.Config.Upload.BaseDir, ref.FileId)
-			url, err := uploadImageToXingHuo(localPath, l.svcCtx.Config.XingChen.ApiKey, l.svcCtx.Config.XingChen.ApiSecret)
-			if err != nil {
-				l.Errorf("图片上传失败：file_id=%s err=%v", ref.FileId, err)
-				lastErr = err // 记录最后一次错误
-				continue
-			}
-			imgURL = url // 目前只支持一张图片
-			break
-		}
-	}
-	return imgURL, lastErr
 }
 
 // getOrCreateConversation 	获取或创建会话，并获取历史消息
@@ -356,6 +378,7 @@ func (l *ChatCompletionsLogic) generateTitle(prompt string) string {
 
 //=============================================================================================================
 
+// 上传图片到星火
 func uploadImageToXingHuo(filePath, apiKey, apiSecret string) (string, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -401,4 +424,136 @@ func uploadImageToXingHuo(filePath, apiKey, apiSecret string) (string, error) {
 		return "", fmt.Errorf("上传失败 code=%d: %s", result.Code, result.Message)
 	}
 	return result.Data.URL, nil
+}
+
+// readTextFile 读取文本文件内容
+func readTextFile(filePath string) (string, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
+// 读取 docx 文件
+func readDocxFile(filePath string) (string, error) {
+	// 打开 docx 文件（其实是 zip）
+	r, err := zip.OpenReader(filePath)
+	if err != nil {
+		return "", err
+	}
+	defer r.Close()
+
+	var documentXML []byte
+
+	// 查找 word/document.xml 文件
+	for _, f := range r.File {
+		if f.Name == "word/document.xml" {
+			rc, err := f.Open()
+			if err != nil {
+				return "", err
+			}
+			defer rc.Close()
+
+			documentXML, err = io.ReadAll(rc)
+			if err != nil {
+				return "", err
+			}
+			break
+		}
+	}
+
+	if documentXML == nil {
+		return "", fmt.Errorf("document.xml not found in docx")
+	}
+
+	// 定义结构来解析 <w:t>
+	type Text struct {
+		XMLName xml.Name `xml:"t"`
+		Content string   `xml:",chardata"`
+	}
+
+	decoder := xml.NewDecoder(bytes.NewReader(documentXML))
+	var textBuilder strings.Builder
+
+	for {
+		tok, err := decoder.Token()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return "", err
+		}
+
+		switch se := tok.(type) {
+		case xml.StartElement:
+			if se.Name.Local == "t" { // <w:t> 标签
+				var t Text
+				if err := decoder.DecodeElement(&t, &se); err == nil {
+					textBuilder.WriteString(t.Content)
+				}
+			}
+		}
+	}
+
+	return textBuilder.String(), nil
+}
+
+// 读取 pdf 文件
+func readPdfFile(filePath string) (string, error) {
+	f, r, err := pdf.Open(filePath)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	b, err := r.GetPlainText()
+	if err != nil {
+		return "", err
+	}
+	var sb strings.Builder
+	buf := make([]byte, 1024)
+
+	for {
+		n, err := b.Read(buf)
+		if n == 0 || err != nil {
+			break
+		}
+		sb.Write(buf[:n])
+	}
+
+	// 清理 PDF 中异常换行
+	rawText := sb.String()
+	cleaned := cleanPdfText(rawText)
+	return cleaned, nil
+}
+
+// 去除 PDF 过多的换行符，只保留段落级别的换行
+func cleanPdfText(raw string) string {
+	lines := strings.Split(raw, "\n")
+	var sb strings.Builder
+
+	for i, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		sb.WriteString(line)
+
+		// 如果下一行可能是新段落，则换行
+		if i < len(lines)-1 && isNewParagraph(lines[i+1]) {
+			sb.WriteString("\n")
+		}
+	}
+
+	return sb.String()
+}
+
+// 简单判断是否为段落起始（以中文或大写英文字母开头）
+func isNewParagraph(s string) bool {
+	s = strings.TrimSpace(s)
+	if len(s) == 0 {
+		return false
+	}
+	first := rune(s[0])
+	return first >= 'A' && first <= 'Z' || first >= '\u4e00' && first <= '\u9fa5'
 }
