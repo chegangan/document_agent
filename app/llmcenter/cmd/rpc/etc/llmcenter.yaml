@@ -10,11 +10,11 @@ Log:
   
 Etcd:
   Hosts:
-    - etcd:2379
+    - localhost:2379
   Key: llmcenter.rpc
 
 DB:
-  DataSource: llmcenter:G7v@pL2#xQ9!sT8z@tcp(mysql:3306)/document_agent_llmcenter?charset=utf8mb4&parseTime=true&loc=Asia%2FShanghai
+  DataSource: llmcenter:G7v@pL2#xQ9!sT8z@tcp(localhost:3306)/document_agent_llmcenter?charset=utf8mb4&parseTime=true&loc=Asia%2FShanghai
 
 XingChen:
   FlowID: "7354391026480812034"
@@ -22,9 +22,10 @@ XingChen:
   ApiResumeURL: "https://xingchen-api.xf-yun.com/workflow/v1/resume"
   ApiSecret: "MmVmZmY4YjhhMmQzMWUxMTllNTFiZjhj"
   ApiKey: "a08967af6fefaf656356d138b67947cf"
+  UploadURL: "https://xingchen-api.xf-yun.com/workflow/v1/upload_file"
 
 Redis:
-  Host: redis:6379
+  Host: localhost:6379
   Type: node  # 单节点模式用 node，集群模式用 cluster
   Pass: ""    # 如果你的 Redis 有密码，在这里填写
   Tls: false
@@ -32,3 +33,10 @@ Redis:
   
 Upload:
   BaseDir: data/static
+
+LlmApiClient:
+  Timeout: 200  # s
+  MaxIdleConns: 100
+  MaxIdleConnsPerHost: 10
+  IdleConnTimeout: 90  # s
+  DisableCompression: true

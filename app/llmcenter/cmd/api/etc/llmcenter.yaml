@@ -17,14 +17,14 @@ Auth:
 
 Etcd:
   Hosts:
-    - etcd:2379
+    - localhost:2379
   Key: llmcenter.api
 
 # rpc 配置
 LlmCenterRpcConf:
   Etcd:
     Hosts:
-      - etcd:2379
+      - localhost:2379
     Key: llmcenter.rpc
   NonBlock: true
 

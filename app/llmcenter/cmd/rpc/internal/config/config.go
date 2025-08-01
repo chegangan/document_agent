@@ -15,6 +15,14 @@ type Config struct {
 		ApiResumeURL string // 星辰大模型 API 的 Resume URL
 		ApiKey       string // 星辰大模型 API 的 Key
 		ApiSecret    string // 星辰大模型 API 的 Secret
+		UploadURL    string // 星辰大模型上传图片的 URL
+	}
+	LlmApiClient struct {
+		Timeout             int
+		MaxIdleConns        int
+		MaxIdleConnsPerHost int
+		IdleConnTimeout     int
+		DisableCompression  bool
 	}
 	Upload struct {
 		BaseDir string

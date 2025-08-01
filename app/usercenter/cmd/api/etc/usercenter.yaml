@@ -15,7 +15,7 @@ JwtAuth:
 UsercenterRpcConf:
   Etcd:
     Hosts:
-      - etcd:2379
+      - localhost:2379
     Key: usercenter.rpc
   NonBlock: true
 

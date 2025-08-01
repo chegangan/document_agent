@@ -30,11 +30,12 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		LlmApiClient: &http.Client{
 			// 设置一个总的请求超时，防止请求永远挂起。
 			// 注意：对于流式请求，这个超时需要足够长。
-			Timeout: 5 * time.Minute,
+			Timeout: time.Duration(c.LlmApiClient.Timeout) * time.Second,
 			Transport: &http.Transport{
-				MaxIdleConns:        100,              // 最大空闲连接数
-				MaxIdleConnsPerHost: 10,               // 每个主机的最大空闲连接数
-				IdleConnTimeout:     90 * time.Second, // 空闲连接超时时间
+				MaxIdleConns:        c.LlmApiClient.MaxIdleConns,                                 // 最大空闲连接数
+				MaxIdleConnsPerHost: c.LlmApiClient.MaxIdleConnsPerHost,                          // 每个主机的最大空闲连接数
+				IdleConnTimeout:     time.Duration(c.LlmApiClient.IdleConnTimeout) * time.Second, // 空闲连接超时时间
+				DisableCompression:  c.LlmApiClient.DisableCompression,
 			},
 		},
 	}
