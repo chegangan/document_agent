@@ -2,7 +2,6 @@ package logic
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 
@@ -41,11 +40,6 @@ func (l *ChatResumeLogic) ChatResume(in *pb.ChatResumeRequest, stream pb.LlmCent
 	// 2. 从 Redis 中获取并删除中断事件ID
 	eventID, err := l.getAndDelInterruptEventID(in.ConversationId)
 	if err != nil {
-		return err
-	}
-
-	// 3. 保存用户提交的、编辑后的 "document_outline"
-	if err := l.saveUserConfirmation(in); err != nil {
 		return err
 	}
 
@@ -110,42 +104,22 @@ func (l *ChatResumeLogic) getAndDelInterruptEventID(convID string) (string, erro
 	return eventID, nil
 }
 
-// saveUserConfirmation 保存用户确认后的内容清单
-func (l *ChatResumeLogic) saveUserConfirmation(in *pb.ChatResumeRequest) error {
-	userMessage := &model.Messages{
-		MessageId:      tool.GenerateULID(),
-		ConversationId: in.ConversationId,
-		Role:           "user", // 代表这是用户的输入
-		Content:        in.Content,
-		ContentType:    "document_outline", // 表明这是用户确认后的内容清单
-	}
-	_, err := l.svcCtx.MessageModel.Insert(l.ctx, userMessage)
-	if err != nil {
-		return fmt.Errorf("ChatResume db message Insert err:%+v, message:%+v: %w", err, userMessage, xerr.ErrDbError)
-	}
-	return nil
-}
-
 // saveFinalDocument 保存最终生成的完整文章
 func (l *ChatResumeLogic) saveFinalDocument(conversationID, content string) (string, error) {
 	if content == "" {
 		return "", nil
 	}
-	assistantMessageID := tool.GenerateULID()
-	assistantMessage := &model.Messages{
-		MessageId:      assistantMessageID,
-		ConversationId: conversationID,
-		Role:           "assistant",
-		Content:        content,
-		ContentType:    "final_document",                          // 标记为最终生成的文档
-		Metadata:       sql.NullString{String: "{}", Valid: true}, // 初始化为空JSON对象
+
+	// 生成唯一的 message_id
+	documentID := tool.GenerateULID()
+
+	// 插入到 documents 表
+	err := l.svcCtx.DocumentsModel.InsertDocument(l.ctx, documentID, conversationID, content)
+	if err != nil {
+		return "", fmt.Errorf("saveFinalDocument db Insert to documents err:%+v: %w", err, xerr.ErrDbError)
 	}
 
-	_, err := l.svcCtx.MessageModel.Insert(l.ctx, assistantMessage)
-	if err != nil {
-		return "", fmt.Errorf("saveFinalDocument db Insert err:%+v, message:%+v: %w", err, assistantMessage, xerr.ErrDbError)
-	}
-	return assistantMessageID, nil
+	return documentID, nil
 }
 
 // sendEndEvent 向客户端发送结束事件

@@ -17,11 +17,11 @@ DB:
   DataSource: llmcenter:G7v@pL2#xQ9!sT8z@tcp(localhost:3306)/document_agent_llmcenter?charset=utf8mb4&parseTime=true&loc=Asia%2FShanghai
 
 XingChen:
-  FlowID: "7354391026480812034"
+  FlowID: "7358137534715883522"
   ApiURL: "https://xingchen-api.xf-yun.com/workflow/v1/chat/completions"
   ApiResumeURL: "https://xingchen-api.xf-yun.com/workflow/v1/resume"
-  ApiSecret: "MmVmZmY4YjhhMmQzMWUxMTllNTFiZjhj"
-  ApiKey: "a08967af6fefaf656356d138b67947cf"
+  ApiSecret: "OGQxNzAyZWY1NWVjZGMzNjZkZDY3Y2Fk"
+  ApiKey: "c8c7d2e37e622fd9dcd0f343c2a3ac1f"
   UploadURL: "https://xingchen-api.xf-yun.com/workflow/v1/upload_file"
 
 Redis:
@@ -32,7 +32,7 @@ Redis:
   Key: llmcenter:redis
   
 Upload:
-  BaseDir: data/static
+  BaseDir: D:/vsproject/document_agent/data/static
 
 LlmApiClient:
   Timeout: 200  # s

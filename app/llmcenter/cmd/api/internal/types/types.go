@@ -4,90 +4,141 @@
 package types
 
 type ChatCompletionsRequest struct {
-	ConversationID   string      `json:"conversation_id,optional"`    // 可选, 现有会话ID。如果为空，后端将创建新会话
-	Prompt           string      `json:"prompt"`                      // 必选, 用户输入的文本内容
-	UseKnowledgeBase bool        `json:"use_knowledge_base,optional"` // 可选, 是否使用自定义知识库
-	KnowledgeBaseID  string      `json:"knowledge_base_id,optional"`  // 可选, 如果 use_knowledge_base 为 true, 则需要提供知识库ID
-	References       []Reference `json:"references,optional"`         // 可选, 引用列表
+	ConversationID   string      `json:"conversation_id,optional"`
+	Documenttype     string      `json:"documenttype"`
+	Information      string      `json:"information"`
+	Requests         string      `json:"requests"`
+	UseKnowledgeBase bool        `json:"use_knowledge_base,optional"`
+	KnowledgeBaseID  string      `json:"knowledge_base_id,optional"`
+	References       []Reference `json:"references,optional"` // 来自 llm.api
 }
 
 type ChatCompletionsResponse struct {
 }
 
 type ChatResumeRequest struct {
-	ConversationID string `json:"conversation_id"`      // 必选, 当前会话的ID
-	Content        string `json:"content"`              // 必选, 用户在前端编辑器中确认后的完整内容
-	TemplateID     string `json:"template_id,optional"` // 可选, 如果用户在这一步选择了模板
+	ConversationID string `json:"conversation_id"`
+	Content        string `json:"content"`
+	TemplateID     string `json:"template_id,optional"`
 }
 
 type ChatResumeResponse struct {
 }
 
 type Conversation struct {
-	ConversationID string `json:"conversation_id"` // 会话ID
-	Title          string `json:"title"`           // 会话标题
-	UpdatedAt      string `json:"updated_at"`      // 更新时间 (RFC3339)
+	ConversationID string `json:"conversation_id"`
+	Title          string `json:"title"`
+	UpdatedAt      string `json:"updated_at"`
+}
+
+type Document struct {
+	ID        string `json:"id"`
+	Content   string `json:"content"`
+	CreatedAt string `json:"created_at"`
+}
+
+type EditDocumentRequest struct {
+	ConversationID   string `json:"conversation_id"`
+	MessageID        string `json:"message_id"`
+	Prompt           string `json:"prompt"`
+	UseKnowledgeBase bool   `json:"use_knowledge_base,optional"`
+	KnowledgeBaseID  string `json:"knowledge_base_id,optional"`
+}
+
+type EditDocumentResponse struct {
 }
 
 type EmptyResp struct {
+}
+
+type FileReference struct {
+	FileID   string `json:"file_id"`  // stored_name
+	Filename string `json:"filename"` // 用户上传的原始文件名
 }
 
 type FileUploadRequest struct {
 }
 
 type FileUploadResponse struct {
-	FileID   string `json:"file_id"`      // 后端生成的唯一文件ID
-	FileName string `json:"file_name"`    // 原始文件名
-	URL      string `json:"url,optional"` // 文件的可访问URL
-	Message  string `json:"message"`      // 成功消息
+	FileID   string `json:"file_id"`
+	FileName string `json:"file_name"`
+	URL      string `json:"url,optional"`
+	Message  string `json:"message"`
 }
 
 type GetConversationDetailRequest struct {
-	ConversationID string `path:"conversation_id"` // 从 URL 路径中获取会话ID
+	ConversationID string `path:"conversation_id"`
 }
 
 type GetConversationDetailResponse struct {
 	ConversationID string    `json:"conversation_id"`
 	Title          string    `json:"title"`
-	History        []Message `json:"history"` // 详细消息历史
+	History        []Message `json:"history"` // llm.api 中定义的 Message 结构
 }
 
 type GetConversationsRequest struct {
 }
 
 type GetConversationsResponse struct {
-	Data []Conversation `json:"data"` // 会话列表
+	Data []Conversation `json:"data"` // llm.api 中定义的 Conversation 结构
+}
+
+type GetDocumentDetailRequest struct {
+	ConversationID string `path:"conversation_id"`
+}
+
+type GetDocumentDetailResponse struct {
+	ConversationID string     `json:"conversation_id"`
+	Documents      []Document `json:"documents"`
 }
 
 type GetFileReq struct {
-	Path string `form:"path"` // ← 用 form，而不是 query
+	Path string `form:"path"`
+}
+
+type GetHistoryDataRequest struct {
+	ConversationID string `path:"conversation_id"`
+}
+
+type GetHistoryDataResponse struct {
+	ConversationID string        `json:"conversation_id"`
+	Items          []HistoryData `json:"items"`
+}
+
+type HistoryData struct {
+	ID           string          `json:"id"`           // 对应 message_id
+	Documenttype string          `json:"documenttype"` // 文章类型
+	Information  string          `json:"information"`  // 基本信息
+	Requests     string          `json:"requests"`     // 特殊要求
+	CreatedAt    string          `json:"created_at"`   // 创建时间
+	References   []FileReference `json:"references"`   // 文件引用
 }
 
 type Message struct {
-	ID          string `json:"id"`           // 消息ID
-	Role        string `json:"role"`         // 角色: "user" 或 "assistant"
-	Content     string `json:"content"`      // 消息内容
-	ContentType string `json:"content_type"` // 内容类型, 例如: "text", "document_outline", "final_document"
-	CreatedAt   string `json:"created_at"`   // 创建时间 (RFC3339)
+	ID          string `json:"id"`
+	Role        string `json:"role"`
+	Content     string `json:"content"`
+	ContentType string `json:"content_type"`
+	CreatedAt   string `json:"created_at"`
 }
 
 type Reference struct {
-	Type   string `json:"type"`    // 引用类型, 例如: "file"
-	FileID string `json:"file_id"` // 文件ID
+	Type   string `json:"type"`
+	FileID string `json:"file_id"`
 }
 
 type SSEEndEvent struct {
-	ConversationID string `json:"conversation_id"` // 本次交互所属的会话ID
-	MessageID      string `json:"message_id"`      // 本次交互最终生成的完整消息ID
+	ConversationID string `json:"conversation_id"`
+	MessageID      string `json:"message_id"`
 }
 
 type SSEInterruptEvent struct {
 	ConversationID string `json:"conversation_id"`
 	MessageID      string `json:"message_id"`
-	ContentType    string `json:"content_type"` // 内容类型, 例如 "document_outline"
-	Content        string `json:"content"`      // 需要填入编辑器的内容清单
+	ContentType    string `json:"content_type"`
+	Content        string `json:"content"`
 }
 
 type SSEMessageEvent struct {
-	Chunk string `json:"chunk"` // 流式返回的文本片段
+	Chunk string `json:"chunk"`
 }

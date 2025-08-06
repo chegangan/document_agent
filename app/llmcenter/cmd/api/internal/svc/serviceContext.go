@@ -7,7 +7,9 @@ import (
 
 	"document_agent/app/llmcenter/cmd/api/internal/config"
 	"document_agent/app/llmcenter/cmd/rpc/llmcenter"
+	"document_agent/app/llmcenter/model"
 	"document_agent/pkg/tool"
+	"github.com/zeromicro/go-zero/core/stores/sqlx"
 
 	"github.com/zeromicro/go-zero/zrpc"
 )
@@ -15,6 +17,7 @@ import (
 type ServiceContext struct {
 	Config       config.Config
 	LLMCenterRpc llmcenter.LlmCenter
+	FilesModel   model.FilesModel
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -33,6 +36,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	svc := &ServiceContext{
 		Config:       c,
 		LLMCenterRpc: llmcenter.NewLlmCenter(zrpc.MustNewClient(c.LlmCenterRpcConf)),
+		FilesModel:   model.NewFilesModel(sqlx.NewMysql(c.DB.DataSource)),
 	}
 
 	// 3. 启动文件清理（无 etcd 锁，后期可加）
@@ -44,6 +48,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 				MaxSizeBytes: c.FileCleaner.MaxSizeMB * 1024 * 1024,
 			},
 			time.Duration(c.FileCleaner.IntervalMinutes)*time.Minute,
+			svc.FilesModel,
 		)
 	}
 

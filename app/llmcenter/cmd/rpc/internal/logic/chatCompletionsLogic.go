@@ -37,26 +37,29 @@ func NewChatCompletionsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *C
 
 // ChatCompletions 是处理聊天请求的核心 RPC 方法
 func (l *ChatCompletionsLogic) ChatCompletions(in *pb.ChatCompletionsRequest, stream pb.LlmCenter_ChatCompletionsServer) error {
-	// 1. 获取或创建会话
-	conversationID, historyMessages, err := l.getOrCreateConversation(in.UserId, in.ConversationId, in.Prompt)
+	// 1. 获取或创建会话（使用 information 来生成标题）
+	conversationID, historyMessages, err := l.getOrCreateConversation(in.UserId, in.ConversationId, in.Information)
 	if err != nil {
 		return err
 	}
 
-	// 2. 处理文件引用，并构建最终的 prompt
-	finalPrompt, imgURL, err := l.processReferences(in.Prompt, in.References)
+	// 2. 构造最终的 prompt
+	basePrompt := fmt.Sprintf("请写一篇%s，%s，%s", in.Documenttype, in.Information, in.Requests)
+
+	// 3. 处理文件引用，并增强 prompt（传入 basePrompt）
+	finalPrompt, imgURL, err := l.processReferences(basePrompt, in.References)
 	if err != nil {
-		// 在处理文件引用失败时，可以只记录日志，然后继续使用原始 prompt
 		l.Errorf("processReferences failed: %v. proceeding with original prompt.", err)
-		finalPrompt = in.Prompt
+		finalPrompt = basePrompt
 	}
 
-	// 3. 保存用户消息
-	if err := l.saveUserMessage(conversationID, finalPrompt); err != nil {
+	// 4. 保存历史数据
+	userMessageID, err := l.saveToHistoryDatas(conversationID, in)
+	if err != nil {
 		return err
 	}
 
-	// 4. 构建 LLM 请求
+	// 5. 构建大模型请求
 	llmReq := l.buildLLMRequest(in.UserId, conversationID, finalPrompt, historyMessages, imgURL)
 	reqBody, err := json.Marshal(llmReq)
 	if err != nil {
@@ -64,27 +67,20 @@ func (l *ChatCompletionsLogic) ChatCompletions(in *pb.ChatCompletionsRequest, st
 		return err
 	}
 
-	// 5. 调用大模型 API 并处理流式响应
+	// 6. 发起大模型推理
 	xingchenClient := llm.NewXingChenClient(l.ctx, l.svcCtx)
 	assistantReply, err := xingchenClient.StreamChat(reqBody, stream, conversationID)
 	if err != nil {
-		return err // 错误已在 StreamChat 中包装
+		return err
 	}
 
-	// 如果没有回复内容（例如，在中断事件后），则不保存消息直接发送结束事件
+	// 7. 如果没有回复，直接发送 end 事件
 	if assistantReply == "" {
 		return l.sendEndEvent(stream, conversationID, "")
 	}
 
-	// 6. 保存助手回复
-	assistantMessageID, err := l.saveAssistantMessage(conversationID, assistantReply, in.References)
-	if err != nil {
-		// 保存失败也应通知前端结束，所以只记录日志不返回错误
-		l.Errorf("saveAssistantMessage failed: %v", err)
-	}
-
-	// 7. 发送结束事件
-	return l.sendEndEvent(stream, conversationID, assistantMessageID)
+	// 9. 发送结束事件
+	return l.sendEndEvent(stream, conversationID, userMessageID)
 }
 
 // processReferences 处理文件引用，增强 prompt
@@ -92,7 +88,7 @@ func (l *ChatCompletionsLogic) processReferences(prompt string, references []*pb
 	var imgURL string
 	var fileContents []string
 	reImg := regexp.MustCompile(`(?i)\.(jpg|jpeg|png)$`)
-	reDoc := regexp.MustCompile(`(?i)\.(txt|md|csv|docx|pdf)$`)
+	reDoc := regexp.MustCompile(`(?i)\.(txt|md|csv|docx|pdf|xlsx|pptx)$`)
 	xingchenClient := llm.NewXingChenClient(l.ctx, l.svcCtx)
 
 	for _, ref := range references {
@@ -120,6 +116,10 @@ func (l *ChatCompletionsLogic) processReferences(prompt string, references []*pb
 				content, err = fileprocessor.ReadDocxFile(localPath)
 			case ".pdf":
 				content, err = fileprocessor.ReadPdfFile(localPath)
+			case ".xlsx":
+				content, err = fileprocessor.ReadXlsxFile(localPath)
+			case ".pptx":
+				content, err = fileprocessor.ReadPptxFile(localPath)
 			}
 
 			if err != nil {
@@ -142,19 +142,29 @@ func (l *ChatCompletionsLogic) processReferences(prompt string, references []*pb
 }
 
 // saveUserMessage 保存用户消息到数据库
-func (l *ChatCompletionsLogic) saveUserMessage(conversationID, prompt string) error {
-	userMessage := &model.Messages{
-		MessageId:      tool.GenerateULID(),
-		ConversationId: conversationID,
-		Role:           "user",
-		Content:        prompt,
-		ContentType:    "text",
-	}
-	_, err := l.svcCtx.MessageModel.Insert(l.ctx, userMessage)
+func (l *ChatCompletionsLogic) saveToHistoryDatas(conversationID string, in *pb.ChatCompletionsRequest) (string, error) {
+	messageID := tool.GenerateULID()
+	referencesData, err := json.Marshal(in.References)
 	if err != nil {
-		return fmt.Errorf("saveUserMessage db message Insert err:%+v, message:%+v: %w", err, userMessage, xerr.ErrDbError)
+		return "", fmt.Errorf("failed to marshal references: %v:%w", err, xerr.ErrRequestParam)
 	}
-	return nil
+
+	history := &model.Historydatas{
+		MessageId:      messageID,
+		ConversationId: conversationID,
+		Documenttype:   in.Documenttype,
+		Information:    in.Information,
+		Requests:       in.Requests,
+		Metadata: sql.NullString{
+			String: string(referencesData),
+			Valid:  len(referencesData) > 0 && string(referencesData) != "null",
+		},
+	}
+	_, err = l.svcCtx.HistoryDatasModel.Insert(l.ctx, history)
+	if err != nil {
+		return "", fmt.Errorf("saveToHistoryDatas db Insert err:%+v, data:%+v: %w", err, history, xerr.ErrDbError)
+	}
+	return messageID, nil
 }
 
 // getOrCreateConversation 	获取或创建会话，并获取历史消息
