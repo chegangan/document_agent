@@ -20,15 +20,15 @@ var (
 	filesFieldNames          = builder.RawFieldNames(&Files{})
 	filesRows                = strings.Join(filesFieldNames, ",")
 	filesRowsExpectAutoSet   = strings.Join(stringx.Remove(filesFieldNames, "`create_at`", "`create_time`", "`created_at`", "`update_at`", "`update_time`", "`updated_at`"), ",")
-	filesRowsWithPlaceHolder = strings.Join(stringx.Remove(filesFieldNames, "`id`", "`create_at`", "`create_time`", "`created_at`", "`update_at`", "`update_time`", "`updated_at`"), "=?,") + "=?"
+	filesRowsWithPlaceHolder = strings.Join(stringx.Remove(filesFieldNames, "`stored_name`", "`create_at`", "`create_time`", "`created_at`", "`update_at`", "`update_time`", "`updated_at`"), "=?,") + "=?"
 )
 
 type (
 	filesModel interface {
 		Insert(ctx context.Context, data *Files) (sql.Result, error)
-		FindOne(ctx context.Context, id string) (*Files, error)
+		FindOne(ctx context.Context, storedName string) (*Files, error)
 		Update(ctx context.Context, data *Files) error
-		Delete(ctx context.Context, id string) error
+		Delete(ctx context.Context, storedName string) error
 	}
 
 	defaultFilesModel struct {
@@ -37,7 +37,6 @@ type (
 	}
 
 	Files struct {
-		Id         string    `db:"id"`          // 主键
 		Filename   string    `db:"filename"`    // 用户上传的原始文件名
 		StoredName string    `db:"stored_name"` // 服务器保存的唯一文件名
 		CreatedAt  time.Time `db:"created_at"`  // 上传时间
@@ -51,16 +50,16 @@ func newFilesModel(conn sqlx.SqlConn) *defaultFilesModel {
 	}
 }
 
-func (m *defaultFilesModel) Delete(ctx context.Context, id string) error {
-	query := fmt.Sprintf("delete from %s where `id` = ?", m.table)
-	_, err := m.conn.ExecCtx(ctx, query, id)
+func (m *defaultFilesModel) Delete(ctx context.Context, storedName string) error {
+	query := fmt.Sprintf("delete from %s where `stored_name` = ?", m.table)
+	_, err := m.conn.ExecCtx(ctx, query, storedName)
 	return err
 }
 
-func (m *defaultFilesModel) FindOne(ctx context.Context, id string) (*Files, error) {
-	query := fmt.Sprintf("select %s from %s where `id` = ? limit 1", filesRows, m.table)
+func (m *defaultFilesModel) FindOne(ctx context.Context, storedName string) (*Files, error) {
+	query := fmt.Sprintf("select %s from %s where `stored_name` = ? limit 1", filesRows, m.table)
 	var resp Files
-	err := m.conn.QueryRowCtx(ctx, &resp, query, id)
+	err := m.conn.QueryRowCtx(ctx, &resp, query, storedName)
 	switch err {
 	case nil:
 		return &resp, nil
@@ -72,14 +71,14 @@ func (m *defaultFilesModel) FindOne(ctx context.Context, id string) (*Files, err
 }
 
 func (m *defaultFilesModel) Insert(ctx context.Context, data *Files) (sql.Result, error) {
-	query := fmt.Sprintf("insert into %s (%s) values (?, ?, ?)", m.table, filesRowsExpectAutoSet)
-	ret, err := m.conn.ExecCtx(ctx, query, data.Id, data.Filename, data.StoredName)
+	query := fmt.Sprintf("insert into %s (%s) values (?, ?)", m.table, filesRowsExpectAutoSet)
+	ret, err := m.conn.ExecCtx(ctx, query, data.Filename, data.StoredName)
 	return ret, err
 }
 
 func (m *defaultFilesModel) Update(ctx context.Context, data *Files) error {
-	query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, filesRowsWithPlaceHolder)
-	_, err := m.conn.ExecCtx(ctx, query, data.Filename, data.StoredName, data.Id)
+	query := fmt.Sprintf("update %s set %s where `stored_name` = ?", m.table, filesRowsWithPlaceHolder)
+	_, err := m.conn.ExecCtx(ctx, query, data.Filename, data.StoredName)
 	return err
 }
 

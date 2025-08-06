@@ -239,37 +239,6 @@ func (l *ChatCompletionsLogic) buildLLMRequest(userID int64, convID, prompt stri
 	}
 }
 
-// saveAssistantMessage 保存助手回复到数据库
-func (l *ChatCompletionsLogic) saveAssistantMessage(conversationID string, reply string, references []*pb.Reference) (string, error) {
-	if reply == "" { // 如果没有回复内容（例如，在中断事件后），则不保存
-		return "", nil
-	}
-
-	referencesData, err := json.Marshal(references)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal references: %v:%w", err, xerr.ErrRequestParam)
-	}
-
-	assistantMessageID := tool.GenerateULID()
-	assistantMessage := &model.Messages{
-		MessageId:      assistantMessageID,
-		ConversationId: conversationID,
-		Role:           "assistant",
-		Content:        reply,
-		ContentType:    "document_outline",
-		Metadata: sql.NullString{
-			String: string(referencesData),
-			Valid:  len(referencesData) > 0 && string(referencesData) != "null",
-		},
-	}
-
-	_, err = l.svcCtx.MessageModel.Insert(l.ctx, assistantMessage)
-	if err != nil {
-		return "", fmt.Errorf("saveAssistantMessage db Insert err:%+v, message:%+v: %w", err, assistantMessage, xerr.ErrDbError)
-	}
-	return assistantMessageID, nil
-}
-
 // sendEndEvent 向客户端发送结束事件
 func (l *ChatCompletionsLogic) sendEndEvent(stream pb.LlmCenter_ChatCompletionsServer, conversationID, messageID string) error {
 	endEvent := &pb.SSEEndEvent{
