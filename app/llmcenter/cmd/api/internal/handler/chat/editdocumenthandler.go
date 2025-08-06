@@ -1,9 +1,9 @@
-package conversation
+package chat
 
 import (
 	"net/http"
 
-	"document_agent/app/llmcenter/cmd/api/internal/logic/conversation"
+	"document_agent/app/llmcenter/cmd/api/internal/logic/chat"
 	"document_agent/app/llmcenter/cmd/api/internal/svc"
 	"document_agent/app/llmcenter/cmd/api/internal/types"
 	"github.com/zeromicro/go-zero/rest/httpx"
@@ -18,7 +18,7 @@ func EditDocumentHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := conversation.NewEditDocumentLogic(r.Context(), svcCtx, w, r)
+		l := chat.NewEditDocumentLogic(r.Context(), svcCtx, w, r)
 		_ = l.EditDocument(&req)
 	}
 }
