@@ -1,7 +1,7 @@
-Name: llmcenter
+Name: llmcenter.api
 Host: 0.0.0.0
 Port: 8010
-Mode: dev
+Mode: pro
 Timeout: 300000 # 毫秒, 300000ms = 5 分钟
 
 MaxBytes: 8388608  # 传输文件限制8MB

@@ -18,6 +18,12 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 	server.AddRoutes(
 		[]rest.Route{
 			{
+				// 根据修改提示编辑现有文章 (SSE 流式响应)
+				Method:  http.MethodPost,
+				Path:    "/chat/edit",
+				Handler: chat.EditDocumentHandler(serverCtx),
+			},
+			{
 				// 发起新对话或在现有对话中发送消息 (SSE 流式响应)
 				Method:  http.MethodPost,
 				Path:    "/chat/completions",
@@ -36,12 +42,6 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 
 	server.AddRoutes(
 		[]rest.Route{
-			{
-				// 根据修改提示编辑现有文章 (SSE 流式响应)
-				Method:  http.MethodPost,
-				Path:    "/chat/edit",
-				Handler: conversation.EditDocumentHandler(serverCtx),
-			},
 			{
 				// 获取当前用户的会话列表
 				Method:  http.MethodGet,

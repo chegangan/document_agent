@@ -4,6 +4,14 @@ networks:
   document_agent_net:
     driver: bridge
 
+# --- 在顶层定义默认的日志配置 ---
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m" # 单个文件最大10MB
+    max-file: "1"   # 最多保留1个文件
+
+
 services:
   # --- UserCenter Services ---
   usercenter-api:
@@ -23,6 +31,7 @@ services:
       - TZ=Asia/Shanghai
     volumes:
       - ./deploy/etc/usercenterapi.yaml:/app/etc/usercenter.yaml
+    logging: *default-logging
     restart: always
 
   usercenter-rpc:
@@ -40,6 +49,7 @@ services:
       - TZ=Asia/Shanghai
     volumes:
       - ./deploy/etc/usercenterrpc.yaml:/app/etc/usercenter.yaml
+    logging: *default-logging
     restart: always
 
   # --- LLMCenter Services ---
@@ -61,6 +71,7 @@ services:
       - ./data/static:/data/static
     environment:
       - TZ=Asia/Shanghai
+    logging: *default-logging
     restart: always
 
   llmcenter-rpc:
@@ -72,15 +83,21 @@ services:
     networks:
       - document_agent_net
     depends_on:
-      - mysql
-      - redis
-      - etcd
+      # 将原来的 depends_on 格式改为 long syntax
+      redis:
+        condition: service_healthy # 等待 redis 服务健康
+      # 其他依赖也建议这样做，例如 mysql
+      mysql:
+        condition: service_started
+      etcd:
+        condition: service_started
     volumes:
       # 同样挂载，确保 RPC 服务能访问到 API 服务上传的文件
       - ./deploy/etc/llmcenterrpc.yaml:/app/etc/llmcenter.yaml
       - ./data/static:/data/static
     environment:
       - TZ=Asia/Shanghai
+    logging: *default-logging
     restart: always
 
   # --- Infrastructure Services ---
@@ -102,6 +119,7 @@ services:
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_unicode_ci
       --default-time-zone=Asia/Shanghai
+    logging: *default-logging
     restart: always
 
   redis:
@@ -115,6 +133,12 @@ services:
       - TZ=Asia/Shanghai
     volumes:
       - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "ping"] # 使用 redis-cli ping 命令检查
+      interval: 10s # 每10秒检查一次
+      timeout: 5s   # 5秒内没响应算失败
+      retries: 5    # 重试5次后宣告不健康
+    logging: *default-logging
     restart: always
 
   etcd:
@@ -125,6 +149,7 @@ services:
     environment:
       - ALLOW_NONE_AUTHENTICATION=yes
       - ETCD_ADVERTISE_CLIENT_URLS=http://etcd:2379
+    logging: *default-logging
     restart: always
 
   # --- Swagger UI Service ---
