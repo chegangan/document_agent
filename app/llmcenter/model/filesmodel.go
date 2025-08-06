@@ -10,7 +10,6 @@ import (
 var _ FilesModel = (*customFilesModel)(nil)
 
 type File struct {
-	Id         string    `db:"id"`
 	Filename   string    `db:"filename"`
 	StoredName string    `db:"stored_name"`
 	CreatedAt  time.Time `db:"created_at"`
@@ -50,7 +49,7 @@ func (m *customFilesModel) InsertFile(ctx context.Context, filename, storedName 
 }
 
 func (m *defaultFilesModel) FindByStoredName(ctx context.Context, storedName string) (*File, error) {
-	query := "SELECT id, filename, stored_name, created_at FROM files WHERE stored_name = ? LIMIT 1"
+	query := "SELECT filename, stored_name, created_at FROM files WHERE stored_name = ? LIMIT 1"
 	var file File
 	err := m.conn.QueryRowCtx(ctx, &file, query, storedName)
 	if err != nil {

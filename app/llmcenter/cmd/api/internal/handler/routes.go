@@ -35,6 +35,12 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Path:    "/chat/resume",
 				Handler: chat.ChatResumeHandler(serverCtx),
 			},
+			{
+				// 根据修改提示编辑现有文章 (SSE 流式响应)
+				Method:  http.MethodPost,
+				Path:    "/chat/edit",
+				Handler: chat.EditDocumentHandler(serverCtx),
+			},
 		},
 		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
 		rest.WithPrefix("/llmcenter/v1"),

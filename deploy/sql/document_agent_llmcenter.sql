@@ -62,11 +62,10 @@ CREATE TABLE `messages` (
 DROP TABLE IF EXISTS `files`;
 
 CREATE TABLE `files` (
-  `id` VARCHAR(32) NOT NULL COMMENT '主键',
   `filename` VARCHAR(255) NOT NULL DEFAULT '' COMMENT '用户上传的原始文件名',
-  `stored_name` VARCHAR(255) NOT NULL DEFAULT '' COMMENT '服务器保存的唯一文件名',
+  `stored_name` VARCHAR(255) NOT NULL  COMMENT '服务器保存的唯一文件名',
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '上传时间',
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`stored_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='文件表';
 
 -- --------------------------------------------------
