@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"document_agent/app/llmcenter/model"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
@@ -17,19 +18,18 @@ type FileCleanerCfg struct {
 }
 
 // StartFileCleaner 启动一个循环定时任务
-func StartFileCleaner(cfg FileCleanerCfg, interval time.Duration) {
-	// 先跑一次
-	_ = CleanOnce(context.Background(), cfg)
+func StartFileCleaner(cfg FileCleanerCfg, interval time.Duration, filesModel model.FilesModel) {
+	_ = CleanOnce(context.Background(), cfg, filesModel)
 
 	tk := time.NewTicker(interval)
 	defer tk.Stop()
 
 	for range tk.C {
-		_ = CleanOnce(context.Background(), cfg)
+		_ = CleanOnce(context.Background(), cfg, filesModel)
 	}
 }
 
-func CleanOnce(ctx context.Context, cfg FileCleanerCfg) error {
+func CleanOnce(ctx context.Context, cfg FileCleanerCfg, filesModel model.FilesModel) error {
 	log := logx.WithContext(ctx)
 	now := time.Now()
 
@@ -55,10 +55,19 @@ func CleanOnce(ctx context.Context, cfg FileCleanerCfg) error {
 				deleted++
 				freed += info.Size()
 				log.Infof("deleted: %s", path)
+
+				// 删除数据库记录
+				storedName := filepath.Base(path)
+				if err := filesModel.DeleteByStoredName(ctx, storedName); err != nil {
+					log.Errorf("删除数据库记录失败 stored_name=%s: %v", storedName, err)
+				} else {
+					log.Infof("数据库记录已删除 stored_name=%s", storedName)
+				}
 			}
 		}
 		return nil
 	})
+
 	if err != nil {
 		return err
 	}

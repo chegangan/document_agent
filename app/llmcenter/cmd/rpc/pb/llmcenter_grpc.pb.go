@@ -28,6 +28,9 @@ const (
 	LlmCenter_FileUpload_FullMethodName            = "/llmcenter.LlmCenter/FileUpload"
 	LlmCenter_GetConversations_FullMethodName      = "/llmcenter.LlmCenter/GetConversations"
 	LlmCenter_GetConversationDetail_FullMethodName = "/llmcenter.LlmCenter/GetConversationDetail"
+	LlmCenter_GetDocumentDetail_FullMethodName     = "/llmcenter.LlmCenter/GetDocumentDetail"
+	LlmCenter_GetHistoryData_FullMethodName        = "/llmcenter.LlmCenter/GetHistoryData"
+	LlmCenter_EditDocument_FullMethodName          = "/llmcenter.LlmCenter/EditDocument"
 )
 
 // LlmCenterClient is the client API for LlmCenter service.
@@ -54,6 +57,18 @@ type LlmCenterClient interface {
 	// 对应 API: GET /llmcenter/v1/conversations/{conversation_id}
 	// 功能: 获取指定会话的详细历史消息。
 	GetConversationDetail(ctx context.Context, in *GetConversationDetailRequest, opts ...grpc.CallOption) (*GetConversationDetailResponse, error)
+	// RPC 方法: GetDocumentDetail
+	// 对应 API: GET /llmcenter/v1/documents/{conversation_id}
+	// 功能: 获取指定会话的最终文档历史记录。
+	GetDocumentDetail(ctx context.Context, in *GetDocumentDetailRequest, opts ...grpc.CallOption) (*GetDocumentDetailResponse, error)
+	// RPC 方法: GetHistoryData
+	// 对应 API: GET /llmcenter/v1/historydatas/{conversation_id}
+	// 功能: 获取指定会话的历史数据
+	GetHistoryData(ctx context.Context, in *GetHistoryDataRequest, opts ...grpc.CallOption) (*GetHistoryDataResponse, error)
+	// RPC 方法: EditDocumentRequest
+	// 对应 API: POST /llmcenter/v1/chat/edit
+	// 功能: 获取指定会话的历史数据
+	EditDocument(ctx context.Context, in *EditDocumentRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[EditDocumentResponse], error)
 }
 
 type llmCenterClient struct {
@@ -135,6 +150,45 @@ func (c *llmCenterClient) GetConversationDetail(ctx context.Context, in *GetConv
 	return out, nil
 }
 
+func (c *llmCenterClient) GetDocumentDetail(ctx context.Context, in *GetDocumentDetailRequest, opts ...grpc.CallOption) (*GetDocumentDetailResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetDocumentDetailResponse)
+	err := c.cc.Invoke(ctx, LlmCenter_GetDocumentDetail_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *llmCenterClient) GetHistoryData(ctx context.Context, in *GetHistoryDataRequest, opts ...grpc.CallOption) (*GetHistoryDataResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetHistoryDataResponse)
+	err := c.cc.Invoke(ctx, LlmCenter_GetHistoryData_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *llmCenterClient) EditDocument(ctx context.Context, in *EditDocumentRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[EditDocumentResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &LlmCenter_ServiceDesc.Streams[3], LlmCenter_EditDocument_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[EditDocumentRequest, EditDocumentResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type LlmCenter_EditDocumentClient = grpc.ServerStreamingClient[EditDocumentResponse]
+
 // LlmCenterServer is the server API for LlmCenter service.
 // All implementations must embed UnimplementedLlmCenterServer
 // for forward compatibility.
@@ -159,6 +213,18 @@ type LlmCenterServer interface {
 	// 对应 API: GET /llmcenter/v1/conversations/{conversation_id}
 	// 功能: 获取指定会话的详细历史消息。
 	GetConversationDetail(context.Context, *GetConversationDetailRequest) (*GetConversationDetailResponse, error)
+	// RPC 方法: GetDocumentDetail
+	// 对应 API: GET /llmcenter/v1/documents/{conversation_id}
+	// 功能: 获取指定会话的最终文档历史记录。
+	GetDocumentDetail(context.Context, *GetDocumentDetailRequest) (*GetDocumentDetailResponse, error)
+	// RPC 方法: GetHistoryData
+	// 对应 API: GET /llmcenter/v1/historydatas/{conversation_id}
+	// 功能: 获取指定会话的历史数据
+	GetHistoryData(context.Context, *GetHistoryDataRequest) (*GetHistoryDataResponse, error)
+	// RPC 方法: EditDocumentRequest
+	// 对应 API: POST /llmcenter/v1/chat/edit
+	// 功能: 获取指定会话的历史数据
+	EditDocument(*EditDocumentRequest, grpc.ServerStreamingServer[EditDocumentResponse]) error
 	mustEmbedUnimplementedLlmCenterServer()
 }
 
@@ -183,6 +249,15 @@ func (UnimplementedLlmCenterServer) GetConversations(context.Context, *GetConver
 }
 func (UnimplementedLlmCenterServer) GetConversationDetail(context.Context, *GetConversationDetailRequest) (*GetConversationDetailResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetConversationDetail not implemented")
+}
+func (UnimplementedLlmCenterServer) GetDocumentDetail(context.Context, *GetDocumentDetailRequest) (*GetDocumentDetailResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetDocumentDetail not implemented")
+}
+func (UnimplementedLlmCenterServer) GetHistoryData(context.Context, *GetHistoryDataRequest) (*GetHistoryDataResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetHistoryData not implemented")
+}
+func (UnimplementedLlmCenterServer) EditDocument(*EditDocumentRequest, grpc.ServerStreamingServer[EditDocumentResponse]) error {
+	return status.Errorf(codes.Unimplemented, "method EditDocument not implemented")
 }
 func (UnimplementedLlmCenterServer) mustEmbedUnimplementedLlmCenterServer() {}
 func (UnimplementedLlmCenterServer) testEmbeddedByValue()                   {}
@@ -270,6 +345,53 @@ func _LlmCenter_GetConversationDetail_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _LlmCenter_GetDocumentDetail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetDocumentDetailRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LlmCenterServer).GetDocumentDetail(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LlmCenter_GetDocumentDetail_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LlmCenterServer).GetDocumentDetail(ctx, req.(*GetDocumentDetailRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _LlmCenter_GetHistoryData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetHistoryDataRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LlmCenterServer).GetHistoryData(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LlmCenter_GetHistoryData_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LlmCenterServer).GetHistoryData(ctx, req.(*GetHistoryDataRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _LlmCenter_EditDocument_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(EditDocumentRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(LlmCenterServer).EditDocument(m, &grpc.GenericServerStream[EditDocumentRequest, EditDocumentResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type LlmCenter_EditDocumentServer = grpc.ServerStreamingServer[EditDocumentResponse]
+
 // LlmCenter_ServiceDesc is the grpc.ServiceDesc for LlmCenter service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -284,6 +406,14 @@ var LlmCenter_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetConversationDetail",
 			Handler:    _LlmCenter_GetConversationDetail_Handler,
+		},
+		{
+			MethodName: "GetDocumentDetail",
+			Handler:    _LlmCenter_GetDocumentDetail_Handler,
+		},
+		{
+			MethodName: "GetHistoryData",
+			Handler:    _LlmCenter_GetHistoryData_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
@@ -301,6 +431,11 @@ var LlmCenter_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "FileUpload",
 			Handler:       _LlmCenter_FileUpload_Handler,
 			ClientStreams: true,
+		},
+		{
+			StreamName:    "EditDocument",
+			Handler:       _LlmCenter_EditDocument_Handler,
+			ServerStreams: true,
 		},
 	},
 	Metadata: "llmcenter.proto",

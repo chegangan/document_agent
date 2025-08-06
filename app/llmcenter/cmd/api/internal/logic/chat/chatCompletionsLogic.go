@@ -65,7 +65,9 @@ func (l *ChatCompletionsLogic) ChatCompletions(req *types.ChatCompletionsRequest
 	rpcReq := &pb.ChatCompletionsRequest{
 		UserId:           userID,
 		ConversationId:   req.ConversationID,
-		Prompt:           req.Prompt,
+		Documenttype:     req.Documenttype,
+		Information:      req.Information,
+		Requests:         req.Requests,
 		UseKnowledgeBase: req.UseKnowledgeBase,
 		KnowledgeBaseId:  req.KnowledgeBaseID,
 		References:       rpcReferences,

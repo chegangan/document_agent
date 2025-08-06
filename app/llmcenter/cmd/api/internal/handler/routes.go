@@ -18,13 +18,13 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 	server.AddRoutes(
 		[]rest.Route{
 			{
-				// 发起新对话或在现有对话中发送消息
+				// 发起新对话或在现有对话中发送消息 (SSE 流式响应)
 				Method:  http.MethodPost,
 				Path:    "/chat/completions",
 				Handler: chat.ChatCompletionsHandler(serverCtx),
 			},
 			{
-				// 在工作流中断后, 发送用户编辑好的内容以继续流程
+				// 在工作流中断后, 发送用户编辑好的内容以继续流程 (SSE 流式响应)
 				Method:  http.MethodPost,
 				Path:    "/chat/resume",
 				Handler: chat.ChatResumeHandler(serverCtx),
@@ -37,16 +37,34 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 	server.AddRoutes(
 		[]rest.Route{
 			{
+				// 根据修改提示编辑现有文章 (SSE 流式响应)
+				Method:  http.MethodPost,
+				Path:    "/chat/edit",
+				Handler: conversation.EditDocumentHandler(serverCtx),
+			},
+			{
 				// 获取当前用户的会话列表
 				Method:  http.MethodGet,
 				Path:    "/conversations",
 				Handler: conversation.GetConversationsHandler(serverCtx),
 			},
 			{
-				// 获取指定会话的详细历史消息
+				// 根据会话ID获取指定会话的详细历史消息
 				Method:  http.MethodGet,
 				Path:    "/conversations/:conversation_id",
 				Handler: conversation.GetConversationDetailHandler(serverCtx),
+			},
+			{
+				// 根据会话ID获取该会话的最终文档列表
+				Method:  http.MethodGet,
+				Path:    "/documents/:conversation_id",
+				Handler: conversation.GetDocumentDetailHandler(serverCtx),
+			},
+			{
+				// 根据会话ID获取该会话的历史数据（historydatas 表）
+				Method:  http.MethodGet,
+				Path:    "/historydatas/:conversation_id",
+				Handler: conversation.GetHistoryDataHandler(serverCtx),
 			},
 		},
 		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
@@ -56,13 +74,13 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 	server.AddRoutes(
 		[]rest.Route{
 			{
-				// 按相对路径获取文件
+				// 根据相对路径获取/下载文件
 				Method:  http.MethodGet,
 				Path:    "/files",
 				Handler: file.GetFileHandler(serverCtx),
 			},
 			{
-				// 上传文件, 用于后续对话
+				// 上传文件 (multipart/form-data), 用于知识库或对话引用。请求体中文件的 key 应为 'file'。
 				Method:  http.MethodPost,
 				Path:    "/files/upload",
 				Handler: file.FileUploadHandler(serverCtx),

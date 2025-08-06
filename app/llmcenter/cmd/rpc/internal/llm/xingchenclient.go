@@ -238,3 +238,29 @@ func (c *XingChenClient) handleInterruptEvent(apiResp *types.LLMApiResponse, str
 	}
 	return nil
 }
+
+func (c *XingChenClient) StreamChatForEdit(reqBody []byte, stream pb.LlmCenter_EditDocumentServer, conversationID string) (string, error) {
+	resp, err := c.doStreamRequest(c.svcCtx.Config.XingChen.ApiURL, reqBody)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	handler := func(apiResp *types.LLMApiResponse) (bool, error) {
+		if len(apiResp.Choices) > 0 && apiResp.Choices[0].Delta.Content != "" {
+			message := &pb.SSEMessageEvent{
+				Chunk: apiResp.Choices[0].Delta.Content,
+			}
+			if err := stream.Send(&pb.EditDocumentResponse{
+				Event: &pb.EditDocumentResponse_Message{
+					Message: message,
+				},
+			}); err != nil {
+				return true, fmt.Errorf("failed to send edit chunk: %v: %w", err, xerr.ErrLLMApiCancel)
+			}
+		}
+		return false, nil
+	}
+
+	return c.processStreamResponse(resp.Body, handler)
+}

@@ -11,12 +11,11 @@
 package pb
 
 import (
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
-
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -29,12 +28,14 @@ const (
 // 请求: 发起新对话或继续对话
 type ChatCompletionsRequest struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
-	UserId           int64                  `protobuf:"varint,6,opt,name=user_id,json=userId,proto3" json:"user_id"`                                 //api层传来的用户id
-	ConversationId   string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id"`          // 可选: 现有会话ID。如果为空，将创建新会话。
-	Prompt           string                 `protobuf:"bytes,2,opt,name=prompt,proto3" json:"prompt"`                                                // 必选: 用户输入的文本内容。
-	UseKnowledgeBase bool                   `protobuf:"varint,3,opt,name=use_knowledge_base,json=useKnowledgeBase,proto3" json:"use_knowledge_base"` // 可选: 是否使用自定义知识库。
-	KnowledgeBaseId  string                 `protobuf:"bytes,4,opt,name=knowledge_base_id,json=knowledgeBaseId,proto3" json:"knowledge_base_id"`     // 可选: 如果 use_knowledge_base 为 true，则需要提供知识库ID。
-	References       []*Reference           `protobuf:"bytes,5,rep,name=references,proto3" json:"references"`                                        // 可选: 引用列表，例如引用的文件。
+	UserId           int64                  `protobuf:"varint,6,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`                                 //api层传来的用户id
+	ConversationId   string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`          // 可选: 现有会话ID。如果为空，将创建新会话。
+	Documenttype     string                 `protobuf:"bytes,2,opt,name=documenttype,proto3" json:"documenttype,omitempty"`                                    // 文章类型
+	Information      string                 `protobuf:"bytes,7,opt,name=information,proto3" json:"information,omitempty"`                                      // 基本信息
+	Requests         string                 `protobuf:"bytes,8,opt,name=requests,proto3" json:"requests,omitempty"`                                            // 特殊要求
+	UseKnowledgeBase bool                   `protobuf:"varint,3,opt,name=use_knowledge_base,json=useKnowledgeBase,proto3" json:"use_knowledge_base,omitempty"` // 可选: 是否使用自定义知识库。
+	KnowledgeBaseId  string                 `protobuf:"bytes,4,opt,name=knowledge_base_id,json=knowledgeBaseId,proto3" json:"knowledge_base_id,omitempty"`     // 可选: 如果 use_knowledge_base 为 true，则需要提供知识库ID。
+	References       []*Reference           `protobuf:"bytes,5,rep,name=references,proto3" json:"references,omitempty"`                                        // 可选: 引用列表，例如引用的文件。
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -83,9 +84,23 @@ func (x *ChatCompletionsRequest) GetConversationId() string {
 	return ""
 }
 
-func (x *ChatCompletionsRequest) GetPrompt() string {
+func (x *ChatCompletionsRequest) GetDocumenttype() string {
 	if x != nil {
-		return x.Prompt
+		return x.Documenttype
+	}
+	return ""
+}
+
+func (x *ChatCompletionsRequest) GetInformation() string {
+	if x != nil {
+		return x.Information
+	}
+	return ""
+}
+
+func (x *ChatCompletionsRequest) GetRequests() string {
+	if x != nil {
+		return x.Requests
 	}
 	return ""
 }
@@ -214,10 +229,10 @@ func (*ChatCompletionsResponse_End) isChatCompletionsResponse_Event() {}
 // 请求: 在中断后继续流程
 type ChatResumeRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	UserId         int64                  `protobuf:"varint,4,opt,name=user_id,json=userId,proto3" json:"user_id"`                        //api层传来的用户id
-	ConversationId string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id"` // 必选: 当前会话的ID。
-	Content        string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content"`                                     // 必选: 用户在前端编辑器中确认后的完整内容。
-	TemplateId     string                 `protobuf:"bytes,3,opt,name=template_id,json=templateId,proto3" json:"template_id"`             // 可选: 如果用户在这一步选择了模板。
+	UserId         int64                  `protobuf:"varint,4,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`                        //api层传来的用户id
+	ConversationId string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"` // 必选: 当前会话的ID。
+	Content        string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`                                     // 必选: 用户在前端编辑器中确认后的完整内容。
+	TemplateId     string                 `protobuf:"bytes,3,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`             // 可选: 如果用户在这一步选择了模板。
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -367,7 +382,7 @@ func (*ChatResumeResponse_End) isChatResumeResponse_Event() {}
 // 通常 user_id 从 gRPC 的 metadata (类似 HTTP Header) 中获取，所以请求体为空。
 type GetConversationsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id"` // 可以选择在这里传递 user_id
+	UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"` // 可以选择在这里传递 user_id
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -560,6 +575,567 @@ func (x *GetConversationDetailResponse) GetHistory() []*Message {
 	return nil
 }
 
+// 请求：获取单个最终文档的详细信息
+type GetDocumentDetailRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	ConversationId string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *GetDocumentDetailRequest) Reset() {
+	*x = GetDocumentDetailRequest{}
+	mi := &file_llmcenter_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetDocumentDetailRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetDocumentDetailRequest) ProtoMessage() {}
+
+func (x *GetDocumentDetailRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_llmcenter_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetDocumentDetailRequest.ProtoReflect.Descriptor instead.
+func (*GetDocumentDetailRequest) Descriptor() ([]byte, []int) {
+	return file_llmcenter_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *GetDocumentDetailRequest) GetConversationId() string {
+	if x != nil {
+		return x.ConversationId
+	}
+	return ""
+}
+
+// 单个文档
+type Document struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	MessageId     string                 `protobuf:"bytes,1,opt,name=message_id,json=messageId,proto3" json:"message_id,omitempty"`
+	Content       string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
+	CreatedAt     string                 `protobuf:"bytes,3,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Document) Reset() {
+	*x = Document{}
+	mi := &file_llmcenter_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Document) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Document) ProtoMessage() {}
+
+func (x *Document) ProtoReflect() protoreflect.Message {
+	mi := &file_llmcenter_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Document.ProtoReflect.Descriptor instead.
+func (*Document) Descriptor() ([]byte, []int) {
+	return file_llmcenter_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *Document) GetMessageId() string {
+	if x != nil {
+		return x.MessageId
+	}
+	return ""
+}
+
+func (x *Document) GetContent() string {
+	if x != nil {
+		return x.Content
+	}
+	return ""
+}
+
+func (x *Document) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+// 响应：单个最终文档的详细信息
+type GetDocumentDetailResponse struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	ConversationId string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`
+	Documents      []*Document            `protobuf:"bytes,2,rep,name=documents,proto3" json:"documents,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *GetDocumentDetailResponse) Reset() {
+	*x = GetDocumentDetailResponse{}
+	mi := &file_llmcenter_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetDocumentDetailResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetDocumentDetailResponse) ProtoMessage() {}
+
+func (x *GetDocumentDetailResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_llmcenter_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetDocumentDetailResponse.ProtoReflect.Descriptor instead.
+func (*GetDocumentDetailResponse) Descriptor() ([]byte, []int) {
+	return file_llmcenter_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *GetDocumentDetailResponse) GetConversationId() string {
+	if x != nil {
+		return x.ConversationId
+	}
+	return ""
+}
+
+func (x *GetDocumentDetailResponse) GetDocuments() []*Document {
+	if x != nil {
+		return x.Documents
+	}
+	return nil
+}
+
+// 请求: 获取单个会话的历史数据
+type GetHistoryDataRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	ConversationId string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *GetHistoryDataRequest) Reset() {
+	*x = GetHistoryDataRequest{}
+	mi := &file_llmcenter_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetHistoryDataRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetHistoryDataRequest) ProtoMessage() {}
+
+func (x *GetHistoryDataRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_llmcenter_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetHistoryDataRequest.ProtoReflect.Descriptor instead.
+func (*GetHistoryDataRequest) Descriptor() ([]byte, []int) {
+	return file_llmcenter_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *GetHistoryDataRequest) GetConversationId() string {
+	if x != nil {
+		return x.ConversationId
+	}
+	return ""
+}
+
+// 响应: 历史数据列表
+type GetHistoryDataResponse struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	ConversationId string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`
+	Items          []*HistoryData         `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *GetHistoryDataResponse) Reset() {
+	*x = GetHistoryDataResponse{}
+	mi := &file_llmcenter_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetHistoryDataResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetHistoryDataResponse) ProtoMessage() {}
+
+func (x *GetHistoryDataResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_llmcenter_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetHistoryDataResponse.ProtoReflect.Descriptor instead.
+func (*GetHistoryDataResponse) Descriptor() ([]byte, []int) {
+	return file_llmcenter_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *GetHistoryDataResponse) GetConversationId() string {
+	if x != nil {
+		return x.ConversationId
+	}
+	return ""
+}
+
+func (x *GetHistoryDataResponse) GetItems() []*HistoryData {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+// 单个历史数据项
+type HistoryData struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	MessageId     string                 `protobuf:"bytes,1,opt,name=message_id,json=messageId,proto3" json:"message_id,omitempty"`
+	Documenttype  string                 `protobuf:"bytes,2,opt,name=documenttype,proto3" json:"documenttype,omitempty"`
+	Information   string                 `protobuf:"bytes,3,opt,name=information,proto3" json:"information,omitempty"`
+	Requests      string                 `protobuf:"bytes,4,opt,name=requests,proto3" json:"requests,omitempty"`
+	CreatedAt     string                 `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	References    []*FileReference       `protobuf:"bytes,6,rep,name=references,proto3" json:"references,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *HistoryData) Reset() {
+	*x = HistoryData{}
+	mi := &file_llmcenter_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HistoryData) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HistoryData) ProtoMessage() {}
+
+func (x *HistoryData) ProtoReflect() protoreflect.Message {
+	mi := &file_llmcenter_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HistoryData.ProtoReflect.Descriptor instead.
+func (*HistoryData) Descriptor() ([]byte, []int) {
+	return file_llmcenter_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *HistoryData) GetMessageId() string {
+	if x != nil {
+		return x.MessageId
+	}
+	return ""
+}
+
+func (x *HistoryData) GetDocumenttype() string {
+	if x != nil {
+		return x.Documenttype
+	}
+	return ""
+}
+
+func (x *HistoryData) GetInformation() string {
+	if x != nil {
+		return x.Information
+	}
+	return ""
+}
+
+func (x *HistoryData) GetRequests() string {
+	if x != nil {
+		return x.Requests
+	}
+	return ""
+}
+
+func (x *HistoryData) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *HistoryData) GetReferences() []*FileReference {
+	if x != nil {
+		return x.References
+	}
+	return nil
+}
+
+// 文件
+type FileReference struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	FileId        string                 `protobuf:"bytes,1,opt,name=file_id,json=fileId,proto3" json:"file_id,omitempty"`
+	Filename      string                 `protobuf:"bytes,2,opt,name=filename,proto3" json:"filename,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FileReference) Reset() {
+	*x = FileReference{}
+	mi := &file_llmcenter_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FileReference) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FileReference) ProtoMessage() {}
+
+func (x *FileReference) ProtoReflect() protoreflect.Message {
+	mi := &file_llmcenter_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FileReference.ProtoReflect.Descriptor instead.
+func (*FileReference) Descriptor() ([]byte, []int) {
+	return file_llmcenter_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *FileReference) GetFileId() string {
+	if x != nil {
+		return x.FileId
+	}
+	return ""
+}
+
+func (x *FileReference) GetFilename() string {
+	if x != nil {
+		return x.Filename
+	}
+	return ""
+}
+
+type EditDocumentRequest struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	UserId           int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	ConversationId   string                 `protobuf:"bytes,2,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"`
+	MessageId        string                 `protobuf:"bytes,3,opt,name=message_id,json=messageId,proto3" json:"message_id,omitempty"`
+	Prompt           string                 `protobuf:"bytes,4,opt,name=prompt,proto3" json:"prompt,omitempty"`
+	UseKnowledgeBase bool                   `protobuf:"varint,5,opt,name=use_knowledge_base,json=useKnowledgeBase,proto3" json:"use_knowledge_base,omitempty"`
+	KnowledgeBaseId  string                 `protobuf:"bytes,6,opt,name=knowledge_base_id,json=knowledgeBaseId,proto3" json:"knowledge_base_id,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *EditDocumentRequest) Reset() {
+	*x = EditDocumentRequest{}
+	mi := &file_llmcenter_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EditDocumentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EditDocumentRequest) ProtoMessage() {}
+
+func (x *EditDocumentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_llmcenter_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EditDocumentRequest.ProtoReflect.Descriptor instead.
+func (*EditDocumentRequest) Descriptor() ([]byte, []int) {
+	return file_llmcenter_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *EditDocumentRequest) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+func (x *EditDocumentRequest) GetConversationId() string {
+	if x != nil {
+		return x.ConversationId
+	}
+	return ""
+}
+
+func (x *EditDocumentRequest) GetMessageId() string {
+	if x != nil {
+		return x.MessageId
+	}
+	return ""
+}
+
+func (x *EditDocumentRequest) GetPrompt() string {
+	if x != nil {
+		return x.Prompt
+	}
+	return ""
+}
+
+func (x *EditDocumentRequest) GetUseKnowledgeBase() bool {
+	if x != nil {
+		return x.UseKnowledgeBase
+	}
+	return false
+}
+
+func (x *EditDocumentRequest) GetKnowledgeBaseId() string {
+	if x != nil {
+		return x.KnowledgeBaseId
+	}
+	return ""
+}
+
+type EditDocumentResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Event:
+	//
+	//	*EditDocumentResponse_Message
+	//	*EditDocumentResponse_End
+	Event         isEditDocumentResponse_Event `protobuf_oneof:"event"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EditDocumentResponse) Reset() {
+	*x = EditDocumentResponse{}
+	mi := &file_llmcenter_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EditDocumentResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EditDocumentResponse) ProtoMessage() {}
+
+func (x *EditDocumentResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_llmcenter_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EditDocumentResponse.ProtoReflect.Descriptor instead.
+func (*EditDocumentResponse) Descriptor() ([]byte, []int) {
+	return file_llmcenter_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *EditDocumentResponse) GetEvent() isEditDocumentResponse_Event {
+	if x != nil {
+		return x.Event
+	}
+	return nil
+}
+
+func (x *EditDocumentResponse) GetMessage() *SSEMessageEvent {
+	if x != nil {
+		if x, ok := x.Event.(*EditDocumentResponse_Message); ok {
+			return x.Message
+		}
+	}
+	return nil
+}
+
+func (x *EditDocumentResponse) GetEnd() *SSEEndEvent {
+	if x != nil {
+		if x, ok := x.Event.(*EditDocumentResponse_End); ok {
+			return x.End
+		}
+	}
+	return nil
+}
+
+type isEditDocumentResponse_Event interface {
+	isEditDocumentResponse_Event()
+}
+
+type EditDocumentResponse_Message struct {
+	Message *SSEMessageEvent `protobuf:"bytes,1,opt,name=message,proto3,oneof"`
+}
+
+type EditDocumentResponse_End struct {
+	End *SSEEndEvent `protobuf:"bytes,2,opt,name=end,proto3,oneof"`
+}
+
+func (*EditDocumentResponse_Message) isEditDocumentResponse_Event() {}
+
+func (*EditDocumentResponse_End) isEditDocumentResponse_Event() {}
+
 // 请求流: 文件上传
 // 客户端流的第一个消息必须是 FileInfo，后续消息为文件数据块。
 type FileUploadRequest struct {
@@ -575,7 +1151,7 @@ type FileUploadRequest struct {
 
 func (x *FileUploadRequest) Reset() {
 	*x = FileUploadRequest{}
-	mi := &file_llmcenter_proto_msgTypes[8]
+	mi := &file_llmcenter_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -587,7 +1163,7 @@ func (x *FileUploadRequest) String() string {
 func (*FileUploadRequest) ProtoMessage() {}
 
 func (x *FileUploadRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_llmcenter_proto_msgTypes[8]
+	mi := &file_llmcenter_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -600,7 +1176,7 @@ func (x *FileUploadRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileUploadRequest.ProtoReflect.Descriptor instead.
 func (*FileUploadRequest) Descriptor() ([]byte, []int) {
-	return file_llmcenter_proto_rawDescGZIP(), []int{8}
+	return file_llmcenter_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *FileUploadRequest) GetData() isFileUploadRequest_Data {
@@ -654,7 +1230,7 @@ type FileInfo struct {
 
 func (x *FileInfo) Reset() {
 	*x = FileInfo{}
-	mi := &file_llmcenter_proto_msgTypes[9]
+	mi := &file_llmcenter_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -666,7 +1242,7 @@ func (x *FileInfo) String() string {
 func (*FileInfo) ProtoMessage() {}
 
 func (x *FileInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_llmcenter_proto_msgTypes[9]
+	mi := &file_llmcenter_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -679,7 +1255,7 @@ func (x *FileInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileInfo.ProtoReflect.Descriptor instead.
 func (*FileInfo) Descriptor() ([]byte, []int) {
-	return file_llmcenter_proto_rawDescGZIP(), []int{9}
+	return file_llmcenter_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *FileInfo) GetFileName() string {
@@ -702,7 +1278,7 @@ type FileUploadResponse struct {
 
 func (x *FileUploadResponse) Reset() {
 	*x = FileUploadResponse{}
-	mi := &file_llmcenter_proto_msgTypes[10]
+	mi := &file_llmcenter_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -714,7 +1290,7 @@ func (x *FileUploadResponse) String() string {
 func (*FileUploadResponse) ProtoMessage() {}
 
 func (x *FileUploadResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_llmcenter_proto_msgTypes[10]
+	mi := &file_llmcenter_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -727,7 +1303,7 @@ func (x *FileUploadResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileUploadResponse.ProtoReflect.Descriptor instead.
 func (*FileUploadResponse) Descriptor() ([]byte, []int) {
-	return file_llmcenter_proto_rawDescGZIP(), []int{10}
+	return file_llmcenter_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *FileUploadResponse) GetFileId() string {
@@ -769,7 +1345,7 @@ type Reference struct {
 
 func (x *Reference) Reset() {
 	*x = Reference{}
-	mi := &file_llmcenter_proto_msgTypes[11]
+	mi := &file_llmcenter_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -781,7 +1357,7 @@ func (x *Reference) String() string {
 func (*Reference) ProtoMessage() {}
 
 func (x *Reference) ProtoReflect() protoreflect.Message {
-	mi := &file_llmcenter_proto_msgTypes[11]
+	mi := &file_llmcenter_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -794,7 +1370,7 @@ func (x *Reference) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Reference.ProtoReflect.Descriptor instead.
 func (*Reference) Descriptor() ([]byte, []int) {
-	return file_llmcenter_proto_rawDescGZIP(), []int{11}
+	return file_llmcenter_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *Reference) GetType() string {
@@ -823,7 +1399,7 @@ type Conversation struct {
 
 func (x *Conversation) Reset() {
 	*x = Conversation{}
-	mi := &file_llmcenter_proto_msgTypes[12]
+	mi := &file_llmcenter_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -835,7 +1411,7 @@ func (x *Conversation) String() string {
 func (*Conversation) ProtoMessage() {}
 
 func (x *Conversation) ProtoReflect() protoreflect.Message {
-	mi := &file_llmcenter_proto_msgTypes[12]
+	mi := &file_llmcenter_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -848,7 +1424,7 @@ func (x *Conversation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Conversation.ProtoReflect.Descriptor instead.
 func (*Conversation) Descriptor() ([]byte, []int) {
-	return file_llmcenter_proto_rawDescGZIP(), []int{12}
+	return file_llmcenter_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *Conversation) GetConversationId() string {
@@ -886,7 +1462,7 @@ type Message struct {
 
 func (x *Message) Reset() {
 	*x = Message{}
-	mi := &file_llmcenter_proto_msgTypes[13]
+	mi := &file_llmcenter_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -898,7 +1474,7 @@ func (x *Message) String() string {
 func (*Message) ProtoMessage() {}
 
 func (x *Message) ProtoReflect() protoreflect.Message {
-	mi := &file_llmcenter_proto_msgTypes[13]
+	mi := &file_llmcenter_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -911,7 +1487,7 @@ func (x *Message) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Message.ProtoReflect.Descriptor instead.
 func (*Message) Descriptor() ([]byte, []int) {
-	return file_llmcenter_proto_rawDescGZIP(), []int{13}
+	return file_llmcenter_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *Message) GetId() string {
@@ -960,7 +1536,7 @@ type SSEMessageEvent struct {
 
 func (x *SSEMessageEvent) Reset() {
 	*x = SSEMessageEvent{}
-	mi := &file_llmcenter_proto_msgTypes[14]
+	mi := &file_llmcenter_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -972,7 +1548,7 @@ func (x *SSEMessageEvent) String() string {
 func (*SSEMessageEvent) ProtoMessage() {}
 
 func (x *SSEMessageEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_llmcenter_proto_msgTypes[14]
+	mi := &file_llmcenter_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -985,7 +1561,7 @@ func (x *SSEMessageEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SSEMessageEvent.ProtoReflect.Descriptor instead.
 func (*SSEMessageEvent) Descriptor() ([]byte, []int) {
-	return file_llmcenter_proto_rawDescGZIP(), []int{14}
+	return file_llmcenter_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *SSEMessageEvent) GetChunk() string {
@@ -1009,7 +1585,7 @@ type SSEInterruptEvent struct {
 
 func (x *SSEInterruptEvent) Reset() {
 	*x = SSEInterruptEvent{}
-	mi := &file_llmcenter_proto_msgTypes[15]
+	mi := &file_llmcenter_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1021,7 +1597,7 @@ func (x *SSEInterruptEvent) String() string {
 func (*SSEInterruptEvent) ProtoMessage() {}
 
 func (x *SSEInterruptEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_llmcenter_proto_msgTypes[15]
+	mi := &file_llmcenter_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1034,7 +1610,7 @@ func (x *SSEInterruptEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SSEInterruptEvent.ProtoReflect.Descriptor instead.
 func (*SSEInterruptEvent) Descriptor() ([]byte, []int) {
-	return file_llmcenter_proto_rawDescGZIP(), []int{15}
+	return file_llmcenter_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *SSEInterruptEvent) GetConversationId() string {
@@ -1077,7 +1653,7 @@ type SSEEndEvent struct {
 
 func (x *SSEEndEvent) Reset() {
 	*x = SSEEndEvent{}
-	mi := &file_llmcenter_proto_msgTypes[16]
+	mi := &file_llmcenter_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1089,7 +1665,7 @@ func (x *SSEEndEvent) String() string {
 func (*SSEEndEvent) ProtoMessage() {}
 
 func (x *SSEEndEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_llmcenter_proto_msgTypes[16]
+	mi := &file_llmcenter_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1102,7 +1678,7 @@ func (x *SSEEndEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SSEEndEvent.ProtoReflect.Descriptor instead.
 func (*SSEEndEvent) Descriptor() ([]byte, []int) {
-	return file_llmcenter_proto_rawDescGZIP(), []int{16}
+	return file_llmcenter_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *SSEEndEvent) GetConversationId() string {
@@ -1123,11 +1699,13 @@ var File_llmcenter_proto protoreflect.FileDescriptor
 
 const file_llmcenter_proto_rawDesc = "" +
 	"\n" +
-	"\x0fllmcenter.proto\x12\tllmcenter\"\x82\x02\n" +
+	"\x0fllmcenter.proto\x12\tllmcenter\"\xcc\x02\n" +
 	"\x16ChatCompletionsRequest\x12\x17\n" +
 	"\auser_id\x18\x06 \x01(\x03R\x06userId\x12'\n" +
-	"\x0fconversation_id\x18\x01 \x01(\tR\x0econversationId\x12\x16\n" +
-	"\x06prompt\x18\x02 \x01(\tR\x06prompt\x12,\n" +
+	"\x0fconversation_id\x18\x01 \x01(\tR\x0econversationId\x12\"\n" +
+	"\fdocumenttype\x18\x02 \x01(\tR\fdocumenttype\x12 \n" +
+	"\vinformation\x18\a \x01(\tR\vinformation\x12\x1a\n" +
+	"\brequests\x18\b \x01(\tR\brequests\x12,\n" +
 	"\x12use_knowledge_base\x18\x03 \x01(\bR\x10useKnowledgeBase\x12*\n" +
 	"\x11knowledge_base_id\x18\x04 \x01(\tR\x0fknowledgeBaseId\x124\n" +
 	"\n" +
@@ -1157,7 +1735,49 @@ const file_llmcenter_proto_rawDesc = "" +
 	"\x1dGetConversationDetailResponse\x12'\n" +
 	"\x0fconversation_id\x18\x01 \x01(\tR\x0econversationId\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12,\n" +
-	"\ahistory\x18\x03 \x03(\v2\x12.llmcenter.MessageR\ahistory\"^\n" +
+	"\ahistory\x18\x03 \x03(\v2\x12.llmcenter.MessageR\ahistory\"C\n" +
+	"\x18GetDocumentDetailRequest\x12'\n" +
+	"\x0fconversation_id\x18\x01 \x01(\tR\x0econversationId\"b\n" +
+	"\bDocument\x12\x1d\n" +
+	"\n" +
+	"message_id\x18\x01 \x01(\tR\tmessageId\x12\x18\n" +
+	"\acontent\x18\x02 \x01(\tR\acontent\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x03 \x01(\tR\tcreatedAt\"w\n" +
+	"\x19GetDocumentDetailResponse\x12'\n" +
+	"\x0fconversation_id\x18\x01 \x01(\tR\x0econversationId\x121\n" +
+	"\tdocuments\x18\x02 \x03(\v2\x13.llmcenter.DocumentR\tdocuments\"@\n" +
+	"\x15GetHistoryDataRequest\x12'\n" +
+	"\x0fconversation_id\x18\x01 \x01(\tR\x0econversationId\"o\n" +
+	"\x16GetHistoryDataResponse\x12'\n" +
+	"\x0fconversation_id\x18\x01 \x01(\tR\x0econversationId\x12,\n" +
+	"\x05items\x18\x02 \x03(\v2\x16.llmcenter.HistoryDataR\x05items\"\xe7\x01\n" +
+	"\vHistoryData\x12\x1d\n" +
+	"\n" +
+	"message_id\x18\x01 \x01(\tR\tmessageId\x12\"\n" +
+	"\fdocumenttype\x18\x02 \x01(\tR\fdocumenttype\x12 \n" +
+	"\vinformation\x18\x03 \x01(\tR\vinformation\x12\x1a\n" +
+	"\brequests\x18\x04 \x01(\tR\brequests\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x05 \x01(\tR\tcreatedAt\x128\n" +
+	"\n" +
+	"references\x18\x06 \x03(\v2\x18.llmcenter.FileReferenceR\n" +
+	"references\"D\n" +
+	"\rFileReference\x12\x17\n" +
+	"\afile_id\x18\x01 \x01(\tR\x06fileId\x12\x1a\n" +
+	"\bfilename\x18\x02 \x01(\tR\bfilename\"\xe8\x01\n" +
+	"\x13EditDocumentRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12'\n" +
+	"\x0fconversation_id\x18\x02 \x01(\tR\x0econversationId\x12\x1d\n" +
+	"\n" +
+	"message_id\x18\x03 \x01(\tR\tmessageId\x12\x16\n" +
+	"\x06prompt\x18\x04 \x01(\tR\x06prompt\x12,\n" +
+	"\x12use_knowledge_base\x18\x05 \x01(\bR\x10useKnowledgeBase\x12*\n" +
+	"\x11knowledge_base_id\x18\x06 \x01(\tR\x0fknowledgeBaseId\"\x83\x01\n" +
+	"\x14EditDocumentResponse\x126\n" +
+	"\amessage\x18\x01 \x01(\v2\x1a.llmcenter.SSEMessageEventH\x00R\amessage\x12*\n" +
+	"\x03end\x18\x02 \x01(\v2\x16.llmcenter.SSEEndEventH\x00R\x03endB\a\n" +
+	"\x05event\"^\n" +
 	"\x11FileUploadRequest\x12)\n" +
 	"\x04info\x18\x01 \x01(\v2\x13.llmcenter.FileInfoH\x00R\x04info\x12\x16\n" +
 	"\x05chunk\x18\x02 \x01(\fH\x00R\x05chunkB\x06\n" +
@@ -1195,7 +1815,7 @@ const file_llmcenter_proto_rawDesc = "" +
 	"\vSSEEndEvent\x12'\n" +
 	"\x0fconversation_id\x18\x01 \x01(\tR\x0econversationId\x12\x1d\n" +
 	"\n" +
-	"message_id\x18\x02 \x01(\tR\tmessageId2\xca\x03\n" +
+	"message_id\x18\x02 \x01(\tR\tmessageId2\xd4\x05\n" +
 	"\tLlmCenter\x12Z\n" +
 	"\x0fChatCompletions\x12!.llmcenter.ChatCompletionsRequest\x1a\".llmcenter.ChatCompletionsResponse0\x01\x12K\n" +
 	"\n" +
@@ -1203,7 +1823,10 @@ const file_llmcenter_proto_rawDesc = "" +
 	"\n" +
 	"FileUpload\x12\x1c.llmcenter.FileUploadRequest\x1a\x1d.llmcenter.FileUploadResponse(\x01\x12[\n" +
 	"\x10GetConversations\x12\".llmcenter.GetConversationsRequest\x1a#.llmcenter.GetConversationsResponse\x12j\n" +
-	"\x15GetConversationDetail\x12'.llmcenter.GetConversationDetailRequest\x1a(.llmcenter.GetConversationDetailResponseB\x06Z\x04./pbb\x06proto3"
+	"\x15GetConversationDetail\x12'.llmcenter.GetConversationDetailRequest\x1a(.llmcenter.GetConversationDetailResponse\x12^\n" +
+	"\x11GetDocumentDetail\x12#.llmcenter.GetDocumentDetailRequest\x1a$.llmcenter.GetDocumentDetailResponse\x12U\n" +
+	"\x0eGetHistoryData\x12 .llmcenter.GetHistoryDataRequest\x1a!.llmcenter.GetHistoryDataResponse\x12Q\n" +
+	"\fEditDocument\x12\x1e.llmcenter.EditDocumentRequest\x1a\x1f.llmcenter.EditDocumentResponse0\x01B\x06Z\x04./pbb\x06proto3"
 
 var (
 	file_llmcenter_proto_rawDescOnce sync.Once
@@ -1217,7 +1840,7 @@ func file_llmcenter_proto_rawDescGZIP() []byte {
 	return file_llmcenter_proto_rawDescData
 }
 
-var file_llmcenter_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_llmcenter_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
 var file_llmcenter_proto_goTypes = []any{
 	(*ChatCompletionsRequest)(nil),        // 0: llmcenter.ChatCompletionsRequest
 	(*ChatCompletionsResponse)(nil),       // 1: llmcenter.ChatCompletionsResponse
@@ -1227,41 +1850,61 @@ var file_llmcenter_proto_goTypes = []any{
 	(*GetConversationsResponse)(nil),      // 5: llmcenter.GetConversationsResponse
 	(*GetConversationDetailRequest)(nil),  // 6: llmcenter.GetConversationDetailRequest
 	(*GetConversationDetailResponse)(nil), // 7: llmcenter.GetConversationDetailResponse
-	(*FileUploadRequest)(nil),             // 8: llmcenter.FileUploadRequest
-	(*FileInfo)(nil),                      // 9: llmcenter.FileInfo
-	(*FileUploadResponse)(nil),            // 10: llmcenter.FileUploadResponse
-	(*Reference)(nil),                     // 11: llmcenter.Reference
-	(*Conversation)(nil),                  // 12: llmcenter.Conversation
-	(*Message)(nil),                       // 13: llmcenter.Message
-	(*SSEMessageEvent)(nil),               // 14: llmcenter.SSEMessageEvent
-	(*SSEInterruptEvent)(nil),             // 15: llmcenter.SSEInterruptEvent
-	(*SSEEndEvent)(nil),                   // 16: llmcenter.SSEEndEvent
+	(*GetDocumentDetailRequest)(nil),      // 8: llmcenter.GetDocumentDetailRequest
+	(*Document)(nil),                      // 9: llmcenter.Document
+	(*GetDocumentDetailResponse)(nil),     // 10: llmcenter.GetDocumentDetailResponse
+	(*GetHistoryDataRequest)(nil),         // 11: llmcenter.GetHistoryDataRequest
+	(*GetHistoryDataResponse)(nil),        // 12: llmcenter.GetHistoryDataResponse
+	(*HistoryData)(nil),                   // 13: llmcenter.HistoryData
+	(*FileReference)(nil),                 // 14: llmcenter.FileReference
+	(*EditDocumentRequest)(nil),           // 15: llmcenter.EditDocumentRequest
+	(*EditDocumentResponse)(nil),          // 16: llmcenter.EditDocumentResponse
+	(*FileUploadRequest)(nil),             // 17: llmcenter.FileUploadRequest
+	(*FileInfo)(nil),                      // 18: llmcenter.FileInfo
+	(*FileUploadResponse)(nil),            // 19: llmcenter.FileUploadResponse
+	(*Reference)(nil),                     // 20: llmcenter.Reference
+	(*Conversation)(nil),                  // 21: llmcenter.Conversation
+	(*Message)(nil),                       // 22: llmcenter.Message
+	(*SSEMessageEvent)(nil),               // 23: llmcenter.SSEMessageEvent
+	(*SSEInterruptEvent)(nil),             // 24: llmcenter.SSEInterruptEvent
+	(*SSEEndEvent)(nil),                   // 25: llmcenter.SSEEndEvent
 }
 var file_llmcenter_proto_depIdxs = []int32{
-	11, // 0: llmcenter.ChatCompletionsRequest.references:type_name -> llmcenter.Reference
-	14, // 1: llmcenter.ChatCompletionsResponse.message:type_name -> llmcenter.SSEMessageEvent
-	15, // 2: llmcenter.ChatCompletionsResponse.interrupt:type_name -> llmcenter.SSEInterruptEvent
-	16, // 3: llmcenter.ChatCompletionsResponse.end:type_name -> llmcenter.SSEEndEvent
-	14, // 4: llmcenter.ChatResumeResponse.message:type_name -> llmcenter.SSEMessageEvent
-	16, // 5: llmcenter.ChatResumeResponse.end:type_name -> llmcenter.SSEEndEvent
-	12, // 6: llmcenter.GetConversationsResponse.data:type_name -> llmcenter.Conversation
-	13, // 7: llmcenter.GetConversationDetailResponse.history:type_name -> llmcenter.Message
-	9,  // 8: llmcenter.FileUploadRequest.info:type_name -> llmcenter.FileInfo
-	0,  // 9: llmcenter.LlmCenter.ChatCompletions:input_type -> llmcenter.ChatCompletionsRequest
-	2,  // 10: llmcenter.LlmCenter.ChatResume:input_type -> llmcenter.ChatResumeRequest
-	8,  // 11: llmcenter.LlmCenter.FileUpload:input_type -> llmcenter.FileUploadRequest
-	4,  // 12: llmcenter.LlmCenter.GetConversations:input_type -> llmcenter.GetConversationsRequest
-	6,  // 13: llmcenter.LlmCenter.GetConversationDetail:input_type -> llmcenter.GetConversationDetailRequest
-	1,  // 14: llmcenter.LlmCenter.ChatCompletions:output_type -> llmcenter.ChatCompletionsResponse
-	3,  // 15: llmcenter.LlmCenter.ChatResume:output_type -> llmcenter.ChatResumeResponse
-	10, // 16: llmcenter.LlmCenter.FileUpload:output_type -> llmcenter.FileUploadResponse
-	5,  // 17: llmcenter.LlmCenter.GetConversations:output_type -> llmcenter.GetConversationsResponse
-	7,  // 18: llmcenter.LlmCenter.GetConversationDetail:output_type -> llmcenter.GetConversationDetailResponse
-	14, // [14:19] is the sub-list for method output_type
-	9,  // [9:14] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	20, // 0: llmcenter.ChatCompletionsRequest.references:type_name -> llmcenter.Reference
+	23, // 1: llmcenter.ChatCompletionsResponse.message:type_name -> llmcenter.SSEMessageEvent
+	24, // 2: llmcenter.ChatCompletionsResponse.interrupt:type_name -> llmcenter.SSEInterruptEvent
+	25, // 3: llmcenter.ChatCompletionsResponse.end:type_name -> llmcenter.SSEEndEvent
+	23, // 4: llmcenter.ChatResumeResponse.message:type_name -> llmcenter.SSEMessageEvent
+	25, // 5: llmcenter.ChatResumeResponse.end:type_name -> llmcenter.SSEEndEvent
+	21, // 6: llmcenter.GetConversationsResponse.data:type_name -> llmcenter.Conversation
+	22, // 7: llmcenter.GetConversationDetailResponse.history:type_name -> llmcenter.Message
+	9,  // 8: llmcenter.GetDocumentDetailResponse.documents:type_name -> llmcenter.Document
+	13, // 9: llmcenter.GetHistoryDataResponse.items:type_name -> llmcenter.HistoryData
+	14, // 10: llmcenter.HistoryData.references:type_name -> llmcenter.FileReference
+	23, // 11: llmcenter.EditDocumentResponse.message:type_name -> llmcenter.SSEMessageEvent
+	25, // 12: llmcenter.EditDocumentResponse.end:type_name -> llmcenter.SSEEndEvent
+	18, // 13: llmcenter.FileUploadRequest.info:type_name -> llmcenter.FileInfo
+	0,  // 14: llmcenter.LlmCenter.ChatCompletions:input_type -> llmcenter.ChatCompletionsRequest
+	2,  // 15: llmcenter.LlmCenter.ChatResume:input_type -> llmcenter.ChatResumeRequest
+	17, // 16: llmcenter.LlmCenter.FileUpload:input_type -> llmcenter.FileUploadRequest
+	4,  // 17: llmcenter.LlmCenter.GetConversations:input_type -> llmcenter.GetConversationsRequest
+	6,  // 18: llmcenter.LlmCenter.GetConversationDetail:input_type -> llmcenter.GetConversationDetailRequest
+	8,  // 19: llmcenter.LlmCenter.GetDocumentDetail:input_type -> llmcenter.GetDocumentDetailRequest
+	11, // 20: llmcenter.LlmCenter.GetHistoryData:input_type -> llmcenter.GetHistoryDataRequest
+	15, // 21: llmcenter.LlmCenter.EditDocument:input_type -> llmcenter.EditDocumentRequest
+	1,  // 22: llmcenter.LlmCenter.ChatCompletions:output_type -> llmcenter.ChatCompletionsResponse
+	3,  // 23: llmcenter.LlmCenter.ChatResume:output_type -> llmcenter.ChatResumeResponse
+	19, // 24: llmcenter.LlmCenter.FileUpload:output_type -> llmcenter.FileUploadResponse
+	5,  // 25: llmcenter.LlmCenter.GetConversations:output_type -> llmcenter.GetConversationsResponse
+	7,  // 26: llmcenter.LlmCenter.GetConversationDetail:output_type -> llmcenter.GetConversationDetailResponse
+	10, // 27: llmcenter.LlmCenter.GetDocumentDetail:output_type -> llmcenter.GetDocumentDetailResponse
+	12, // 28: llmcenter.LlmCenter.GetHistoryData:output_type -> llmcenter.GetHistoryDataResponse
+	16, // 29: llmcenter.LlmCenter.EditDocument:output_type -> llmcenter.EditDocumentResponse
+	22, // [22:30] is the sub-list for method output_type
+	14, // [14:22] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_llmcenter_proto_init() }
@@ -1278,7 +1921,11 @@ func file_llmcenter_proto_init() {
 		(*ChatResumeResponse_Message)(nil),
 		(*ChatResumeResponse_End)(nil),
 	}
-	file_llmcenter_proto_msgTypes[8].OneofWrappers = []any{
+	file_llmcenter_proto_msgTypes[16].OneofWrappers = []any{
+		(*EditDocumentResponse_Message)(nil),
+		(*EditDocumentResponse_End)(nil),
+	}
+	file_llmcenter_proto_msgTypes[17].OneofWrappers = []any{
 		(*FileUploadRequest_Info)(nil),
 		(*FileUploadRequest_Chunk)(nil),
 	}
@@ -1288,7 +1935,7 @@ func file_llmcenter_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_llmcenter_proto_rawDesc), len(file_llmcenter_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   17,
+			NumMessages:   26,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

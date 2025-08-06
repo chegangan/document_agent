@@ -14,6 +14,9 @@ type ServiceContext struct {
 	Config            config.Config
 	ConversationModel model.ConversationsModel
 	MessageModel      model.MessagesModel
+	FilesModel        model.FilesModel
+	DocumentsModel    model.DocumentsModel
+	HistoryDatasModel model.HistorydatasModel
 	LlmApiClient      *http.Client // <--- 新增：用于调用 LLM API 的 HTTP 客户端
 	RedisClient       *redis.Redis // 2. 添加 RedisClient 字段
 }
@@ -26,6 +29,9 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		Config:            c,
 		ConversationModel: model.NewConversationsModel(sqlConn),
 		MessageModel:      model.NewMessagesModel(sqlConn),
+		FilesModel:        model.NewFilesModel(sqlConn),
+		DocumentsModel:    model.NewDocumentsModel(sqlConn),
+		HistoryDatasModel: model.NewHistorydatasModel(sqlConn),
 		RedisClient:       redis.MustNewRedis(c.Redis.RedisConf), // 初始化 Redis 客户端
 		LlmApiClient: &http.Client{
 			// 设置一个总的请求超时，防止请求永远挂起。

@@ -45,8 +45,6 @@ func NewFileUploadLogic(ctx context.Context, svcCtx *svc.ServiceContext) *FileUp
 }
 
 func (l *FileUploadLogic) FileUpload(stream pb.LlmCenter_FileUploadServer) error {
-	fmt.Println("rpc")
-
 	var file *os.File
 	var fileName string
 	var fileID string
@@ -66,6 +64,12 @@ func (l *FileUploadLogic) FileUpload(stream pb.LlmCenter_FileUploadServer) error
 	fileID = uuid.New().String()
 	ext := filepath.Ext(fileName)
 	saveName := fileID + ext
+
+	err = l.svcCtx.FilesModel.InsertFile(l.ctx, fileName, saveName)
+	if err != nil {
+		logx.Errorf("保存文件信息失败: %v", err)
+		return err
+	}
 
 	projectRoot := getProjectRoot()
 	uploadDir := filepath.Join(projectRoot, uploadSubDir)

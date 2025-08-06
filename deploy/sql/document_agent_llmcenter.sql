@@ -23,6 +23,7 @@ FLUSH PRIVILEGES;
 -- 切换到新创建的数据库上下文
 USE `document_agent_llmcenter`;
 
+
 -- --------------------------------------------------
 -- Table structure for conversations (会话表)
 -- --------------------------------------------------
@@ -53,6 +54,51 @@ CREATE TABLE `messages` (
   -- 为 conversation_id 创建索引以优化查询性能
   KEY `idx_conversation_id` (`conversation_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='消息表';
+
+
+-- --------------------------------------------------
+-- Table structure for files (文件表)
+-- --------------------------------------------------
+DROP TABLE IF EXISTS `files`;
+
+CREATE TABLE `files` (
+  `id` VARCHAR(32) NOT NULL COMMENT '主键',
+  `filename` VARCHAR(255) NOT NULL DEFAULT '' COMMENT '用户上传的原始文件名',
+  `stored_name` VARCHAR(255) NOT NULL DEFAULT '' COMMENT '服务器保存的唯一文件名',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '上传时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='文件表';
+
+-- --------------------------------------------------
+-- Table structure for histroydatas (历史数据表)
+-- --------------------------------------------------
+DROP TABLE IF EXISTS `historydatas`;
+CREATE TABLE `historydatas` (
+  `message_id`      VARCHAR(32) NOT NULL COMMENT '消息ID (主键, ULID)',
+  `conversation_id` VARCHAR(32) NOT NULL COMMENT '关联的会话ID (外键)',
+  `documenttype`    TEXT NOT NULL COMMENT '文章类型',
+  `information`     TEXT NOT NULL COMMENT '基本信息',
+  `requests`        TEXT NOT NULL COMMENT '特殊要求',
+  `metadata`        JSON DEFAULT NULL COMMENT '存储额外的数据，例如引用的文档ID等',
+  `created_at`      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '消息创建时间',
+  PRIMARY KEY (`message_id`),
+  -- 为 conversation_id 创建索引以优化查询性能
+  KEY `idx_conversation_id` (`conversation_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='历史数据表';
+
+-- --------------------------------------------------
+-- Table structure for documents (最终文档表)
+-- --------------------------------------------------
+DROP TABLE IF EXISTS `documents`;
+CREATE TABLE `documents` (
+  `message_id`      VARCHAR(32) NOT NULL COMMENT '消息ID (主键, ULID)',
+  `conversation_id` VARCHAR(32) NOT NULL COMMENT '关联的会话ID (外键)',
+  `content`         TEXT NOT NULL COMMENT '文章',
+  `created_at`      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '消息创建时间',
+  PRIMARY KEY (`message_id`),
+  -- 为 conversation_id 创建索引以优化查询性能
+  KEY `idx_conversation_id` (`conversation_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='最终文档表';
 
 -- 重新启用外键约束检查
 SET FOREIGN_KEY_CHECKS = 1;

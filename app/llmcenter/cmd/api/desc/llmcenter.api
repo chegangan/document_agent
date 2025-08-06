@@ -16,21 +16,23 @@ import (
 )
 
 // ================== 接口请求与响应 (Requests & Responses) ==================
-
 // --- 聊天接口 (Chat Interfaces) ---
-
 // ChatCompletionsRequest 定义了发起聊天的请求结构。
 type ChatCompletionsRequest {
 	// 可选, 现有会话的ID。如果为空，后端将创建一个新的会话。
-	ConversationID   string      `json:"conversation_id,optional"`
-	// 必选, 用户输入的文本内容或问题。
-	Prompt           string      `json:"prompt"`
-	// 可选, 是否使用自定义知识库进行回答。默认为 false。
-	UseKnowledgeBase bool        `json:"use_knowledge_base,optional"`
-	// 可选, 如果 use_knowledge_base 为 true, 则必须提供知识库ID。
-	KnowledgeBaseID  string      `json:"knowledge_base_id,optional"`
-	// 可选, 用户上传的与本次提问相关的引用文件列表。
-	References       []Reference `json:"references,optional"` // llm.api 中定义的 Reference 结构
+	ConversationID string `json:"conversation_id,optional"`
+	// 必选, 要生成的文档类型，如通知、总结、报告等。
+	Documenttype string `json:"documenttype"`
+	// 必选, 提供的具体信息，如时间地点、人物事件等。
+	Information string `json:"information"`
+	// 可选, 生成文档的语气、格式、语言风格等要求。
+	Requests string `json:"requests"`
+	// 可选, 是否使用知识库
+	UseKnowledgeBase bool `json:"use_knowledge_base,optional"`
+	// 可选, 知识库 ID
+	KnowledgeBaseID string `json:"knowledge_base_id,optional"`
+	// 可选, 附件引用
+	References []Reference `json:"references,optional"` // 来自 llm.api
 }
 
 // ChatCompletionsResponse 为空, 因为此接口使用 SSE (Server-Sent Events) 进行流式响应。
@@ -43,18 +45,16 @@ type ChatResumeRequest {
 	// 必选, 需要继续的当前会话的ID。
 	ConversationID string `json:"conversation_id"`
 	// 必选, 用户在前端编辑器中确认或修改后的完整内容。
-	Content        string `json:"content"`
+	Content string `json:"content"`
 	// 可选, 如果用户在此步骤中选择了某个特定模板来格式化内容。
-	TemplateID     string `json:"template_id,optional"`
+	TemplateID string `json:"template_id,optional"`
 }
 
 // ChatResumeResponse 为空, 因为此接口同样使用 SSE 进行流式响应。
 // 后端逻辑将直接推送事件流。
 type ChatResumeResponse {}
 
-
 // --- 文件管理接口 (File Management Interfaces) ---
-
 // FileUploadRequest 是一个空结构体, 因为文件上传的请求体格式是 multipart/form-data。
 // goctl 会将其识别为文件上传接口。
 // 在后端逻辑代码中, 需要通过 r.ParseMultipartForm() 和 r.FormFile("file") 来手动解析上传的文件。
@@ -64,17 +64,16 @@ type FileUploadRequest {}
 // FileUploadResponse 定义了文件上传成功后的响应。
 type FileUploadResponse {
 	// 后端为上传文件生成的唯一标识符。
-	FileID   string `json:"file_id"`
+	FileID string `json:"file_id"`
 	// 上传的原始文件名。
 	FileName string `json:"file_name"`
 	// 文件的可访问URL (如果适用)。
-	URL      string `json:"url,optional"`
+	URL string `json:"url,optional"`
 	// 操作成功的提示消息。
-	Message  string `json:"message"`
+	Message string `json:"message"`
 }
 
 // --- 历史记录接口 (History Interfaces) ---
-
 // GetConversationsRequest 是一个空结构体，表示获取会话列表不需要任何请求参数。
 type GetConversationsRequest {}
 
@@ -93,11 +92,11 @@ type GetConversationDetailRequest {
 // GetConversationDetailResponse 定义了单个会话的详细内容。
 type GetConversationDetailResponse {
 	// 会话的唯一ID。
-	ConversationID string    `json:"conversation_id"`
+	ConversationID string `json:"conversation_id"`
 	// 会话的标题, 通常是根据第一轮对话生成的。
-	Title          string    `json:"title"`
+	Title string `json:"title"`
 	// 会话的详细消息历史记录。
-	History        []Message `json:"history"` // llm.api 中定义的 Message 结构
+	History []Message `json:"history"` // llm.api 中定义的 Message 结构
 }
 
 // GetFileReq 定义了获取文件的请求。
@@ -110,10 +109,62 @@ type GetFileReq {
 // 通常用于文件下载等场景, 响应体是文件流, 而不是 JSON 数据。
 type EmptyResp {}
 
+//新增的文档接口类型
+type GetDocumentDetailRequest {
+	ConversationID string `path:"conversation_id"`
+}
+
+type Document {
+	ID        string `json:"id"`
+	Content   string `json:"content"`
+	CreatedAt string `json:"created_at"`
+}
+
+type GetDocumentDetailResponse {
+	ConversationID string     `json:"conversation_id"`
+	Documents      []Document `json:"documents"`
+}
+
+// GetHistoryDataRequest 请求结构
+type GetHistoryDataRequest {
+	ConversationID string `path:"conversation_id"`
+}
+
+//文件
+type FileReference {
+	FileID   string `json:"file_id"` // stored_name
+	Filename string `json:"filename"` // 用户上传的原始文件名
+}
+
+// HistoryData 响应中的单项
+type HistoryData {
+	ID           string          `json:"id"` // 对应 message_id
+	Documenttype string          `json:"documenttype"` // 文章类型
+	Information  string          `json:"information"` // 基本信息
+	Requests     string          `json:"requests"` // 特殊要求
+	CreatedAt    string          `json:"created_at"` // 创建时间
+	References   []FileReference `json:"references"` // 文件引用
+}
+
+// GetHistoryDataResponse 响应结构
+type GetHistoryDataResponse {
+	ConversationID string        `json:"conversation_id"`
+	Items          []HistoryData `json:"items"`
+}
+
+// --- 文档编辑接口 (Edit Document) ---
+type EditDocumentRequest {
+	ConversationID   string `json:"conversation_id"`
+	MessageID        string `json:"message_id"`
+	Prompt           string `json:"prompt"`
+	UseKnowledgeBase bool   `json:"use_knowledge_base,optional"`
+	KnowledgeBaseID  string `json:"knowledge_base_id,optional"`
+}
+
+type EditDocumentResponse {}
 
 // ================== 服务定义 (Service Definition) ==================
 // 使用 @server 定义一组相关的 API。所有接口都需要 JWT 认证。
-
 // @server 注解用于定义服务配置。
 // prefix: 所有在此块中定义的路由都会加上这个前缀。
 // group:  为生成的 handler 和 logic 文件指定一个子目录名, 便于组织代码。
@@ -165,4 +216,17 @@ service llmcenter {
 	@doc "根据会话ID获取指定会话的详细历史消息"
 	@handler getConversationDetail
 	get /conversations/:conversation_id (GetConversationDetailRequest) returns (GetConversationDetailResponse)
+
+	@doc "根据会话ID获取该会话的最终文档列表"
+	@handler getDocumentDetail
+	get /documents/:conversation_id (GetDocumentDetailRequest) returns (GetDocumentDetailResponse)
+
+	@doc "根据会话ID获取该会话的历史数据（historydatas 表）"
+	@handler getHistoryData
+	get /historydatas/:conversation_id (GetHistoryDataRequest) returns (GetHistoryDataResponse)
+
+	@doc "根据修改提示编辑现有文章 (SSE 流式响应)"
+	@handler editDocument
+	post /chat/edit (EditDocumentRequest) returns (EditDocumentResponse)
 }
+

@@ -33,7 +33,7 @@ func NewFileUploadLogic(ctx context.Context, svcCtx *svc.ServiceContext) *FileUp
 func (l *FileUploadLogic) FileUpload(form *multipart.Form) (*types.FileUploadResponse, error) {
 	files := form.File["file"]
 	if len(files) == 0 {
-		return nil, fmt.Errorf("未找到文件: %v", xerr.ErrFileNotFound) // 你可以自定义这个错误
+		return nil, fmt.Errorf("未找到文件: %v", xerr.ErrFileNotFound)
 	}
 
 	fileHeader := files[0]

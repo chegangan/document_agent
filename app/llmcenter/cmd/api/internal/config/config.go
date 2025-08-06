@@ -14,6 +14,10 @@ type Config struct {
 		BaseDir string
 	}
 
+	DB struct {
+		DataSource string
+	}
+
 	Etcd struct {
 		Hosts []string
 		Key   string
