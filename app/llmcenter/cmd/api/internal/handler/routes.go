@@ -24,16 +24,22 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Handler: chat.ChatCompletionsHandler(serverCtx),
 			},
 			{
+				// 根据修改提示编辑现有文章 (SSE 流式响应)
+				Method:  http.MethodPost,
+				Path:    "/chat/edit",
+				Handler: chat.EditDocumentHandler(serverCtx),
+			},
+			{
 				// 在工作流中断后, 发送用户编辑好的内容以继续流程 (SSE 流式响应)
 				Method:  http.MethodPost,
 				Path:    "/chat/resume",
 				Handler: chat.ChatResumeHandler(serverCtx),
 			},
 			{
-				// 根据修改提示编辑现有文章 (SSE 流式响应)
+				// 手动修改公文内容
 				Method:  http.MethodPost,
-				Path:    "/chat/edit",
-				Handler: chat.EditDocumentHandler(serverCtx),
+				Path:    "/chat/update",
+				Handler: chat.UpdateDocumentHandler(serverCtx),
 			},
 		},
 		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),

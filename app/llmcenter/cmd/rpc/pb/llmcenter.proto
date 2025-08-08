@@ -52,6 +52,11 @@ service LlmCenter {
   // 对应 API: POST /llmcenter/v1/chat/edit
   // 功能: 获取指定会话的历史数据
   rpc EditDocument(EditDocumentRequest) returns (stream EditDocumentResponse);
+
+  // RPC 方法: UpdateDocumentRequest
+  // 对应 API: POST /llmcenter/v1/chat/update
+  // 功能: 手动修改文档内容
+  rpc UpdateDocument(UpdateDocumentRequest) returns (UpdateDocumentResponse);
 }
 
 
@@ -179,6 +184,16 @@ message EditDocumentResponse {
     SSEMessageEvent message = 1;
     SSEEndEvent end = 2;
   }
+}
+
+message UpdateDocumentRequest {
+  string conversation_id = 1;
+  string message_id = 2;
+  string prompt = 3;
+}
+
+message UpdateDocumentResponse {
+  bool success = 1;
 }
 
 
