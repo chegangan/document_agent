@@ -40,6 +40,8 @@ type (
 	SSEEndEvent                   = pb.SSEEndEvent
 	SSEInterruptEvent             = pb.SSEInterruptEvent
 	SSEMessageEvent               = pb.SSEMessageEvent
+	UpdateDocumentRequest         = pb.UpdateDocumentRequest
+	UpdateDocumentResponse        = pb.UpdateDocumentResponse
 
 	LlmCenter interface {
 		// RPC 方法: ChatCompletions
@@ -58,6 +60,8 @@ type (
 		GetHistoryData(ctx context.Context, in *GetHistoryDataRequest, opts ...grpc.CallOption) (*GetHistoryDataResponse, error)
 		// RPC 方法: EditDocumentRequest
 		EditDocument(ctx context.Context, in *EditDocumentRequest, opts ...grpc.CallOption) (pb.LlmCenter_EditDocumentClient, error)
+		// RPC 方法: UpdateDocumentRequest
+		UpdateDocument(ctx context.Context, in *UpdateDocumentRequest, opts ...grpc.CallOption) (*UpdateDocumentResponse, error)
 	}
 
 	defaultLlmCenter struct {
@@ -117,4 +121,10 @@ func (m *defaultLlmCenter) GetHistoryData(ctx context.Context, in *GetHistoryDat
 func (m *defaultLlmCenter) EditDocument(ctx context.Context, in *EditDocumentRequest, opts ...grpc.CallOption) (pb.LlmCenter_EditDocumentClient, error) {
 	client := pb.NewLlmCenterClient(m.cli.Conn())
 	return client.EditDocument(ctx, in, opts...)
+}
+
+// RPC 方法: UpdateDocumentRequest
+func (m *defaultLlmCenter) UpdateDocument(ctx context.Context, in *UpdateDocumentRequest, opts ...grpc.CallOption) (*UpdateDocumentResponse, error) {
+	client := pb.NewLlmCenterClient(m.cli.Conn())
+	return client.UpdateDocument(ctx, in, opts...)
 }

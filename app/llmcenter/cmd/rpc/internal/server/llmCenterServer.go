@@ -70,3 +70,9 @@ func (s *LlmCenterServer) EditDocument(in *pb.EditDocumentRequest, stream pb.Llm
 	l := logic.NewEditDocumentLogic(stream.Context(), s.svcCtx)
 	return l.EditDocument(in, stream)
 }
+
+// RPC 方法: UpdateDocumentRequest
+func (s *LlmCenterServer) UpdateDocument(ctx context.Context, in *pb.UpdateDocumentRequest) (*pb.UpdateDocumentResponse, error) {
+	l := logic.NewUpdateDocumentLogic(ctx, s.svcCtx)
+	return l.UpdateDocument(in)
+}

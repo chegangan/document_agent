@@ -142,3 +142,13 @@ type SSEInterruptEvent struct {
 type SSEMessageEvent struct {
 	Chunk string `json:"chunk"`
 }
+
+type UpdateDocumentRequest struct {
+	Conversation_id string `json:"conversation_id"`
+	Message_id      string `json:"message_id"`
+	Prompt          string `json:"prompt"`
+}
+
+type UpdateDocumentResponse struct {
+	Success bool `json:"success"`
+}

@@ -163,6 +163,16 @@ type EditDocumentRequest {
 
 type EditDocumentResponse {}
 
+type UpdateDocumentRequest {
+	conversation_id string `json:"conversation_id"`
+	message_id      string `json:"message_id"`
+	prompt          string `json:"prompt"`
+}
+
+type UpdateDocumentResponse {
+	success bool `json:"success"`
+}
+
 // ================== 服务定义 (Service Definition) ==================
 // 使用 @server 定义一组相关的 API。所有接口都需要 JWT 认证。
 // @server 注解用于定义服务配置。
@@ -184,6 +194,14 @@ service llmcenter {
 	@doc "在工作流中断后, 发送用户编辑好的内容以继续流程 (SSE 流式响应)"
 	@handler chatResume
 	post /chat/resume (ChatResumeRequest) returns (ChatResumeResponse)
+
+	@doc "根据修改提示编辑现有文章 (SSE 流式响应)"
+	@handler editDocument
+	post /chat/edit (EditDocumentRequest) returns (EditDocumentResponse)
+
+	@doc "手动修改公文内容"
+	@handler UpdateDocument
+	post /chat/update (UpdateDocumentRequest) returns (UpdateDocumentResponse)
 }
 
 // 备注: 后端需要实现一个定时任务，用于清理过期的临时文件及其在数据库中的记录，
@@ -224,9 +242,5 @@ service llmcenter {
 	@doc "根据会话ID获取该会话的历史数据（historydatas 表）"
 	@handler getHistoryData
 	get /historydatas/:conversation_id (GetHistoryDataRequest) returns (GetHistoryDataResponse)
-
-	@doc "根据修改提示编辑现有文章 (SSE 流式响应)"
-	@handler editDocument
-	post /chat/edit (EditDocumentRequest) returns (EditDocumentResponse)
 }
 
