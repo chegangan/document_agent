@@ -37,7 +37,7 @@ func (m *customMessagesModel) withSession(session sqlx.Session) MessagesModel {
 
 func (m *defaultMessagesModel) FindAllByConversation(ctx context.Context, conversationId string) ([]*Messages, error) {
 	// 假设 messagesRows 是生成文件里定义的所有列名拼接
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE `conversation_id` = ? ORDER BY `created_at` ASC",
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE `conversation_id` = ? ORDER BY `created_at` ASC, `role`='user' DESC",
 		messagesRows, m.table)
 	var resp []*Messages
 	err := m.conn.QueryRowsCtx(ctx, &resp, query, conversationId)
