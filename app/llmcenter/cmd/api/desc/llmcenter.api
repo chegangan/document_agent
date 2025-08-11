@@ -173,6 +173,11 @@ type UpdateDocumentResponse {
 	success bool `json:"success"`
 }
 
+type DownloadFileRequest {
+	Prompt string `json:"prompt"`
+	Type   string `json:"type"` // "pdf" | "docx"
+}
+
 // ================== 服务定义 (Service Definition) ==================
 // 使用 @server 定义一组相关的 API。所有接口都需要 JWT 认证。
 // @server 注解用于定义服务配置。
@@ -202,6 +207,10 @@ service llmcenter {
 	@doc "手动修改公文内容"
 	@handler UpdateDocument
 	post /chat/update (UpdateDocumentRequest) returns (UpdateDocumentResponse)
+
+	@doc "将Markdown转为相应格式并下载"
+	@handler DownloadFile
+	post /files/download (DownloadFileRequest)
 }
 
 // 备注: 后端需要实现一个定时任务，用于清理过期的临时文件及其在数据库中的记录，

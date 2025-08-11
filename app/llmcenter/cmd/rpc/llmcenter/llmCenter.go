@@ -19,6 +19,8 @@ type (
 	ChatResumeRequest             = pb.ChatResumeRequest
 	ChatResumeResponse            = pb.ChatResumeResponse
 	Conversation                  = pb.Conversation
+	ConvertMarkdownRequest        = pb.ConvertMarkdownRequest
+	ConvertMarkdownResponse       = pb.ConvertMarkdownResponse
 	Document                      = pb.Document
 	EditDocumentRequest           = pb.EditDocumentRequest
 	EditDocumentResponse          = pb.EditDocumentResponse
@@ -62,6 +64,8 @@ type (
 		EditDocument(ctx context.Context, in *EditDocumentRequest, opts ...grpc.CallOption) (pb.LlmCenter_EditDocumentClient, error)
 		// RPC 方法: UpdateDocumentRequest
 		UpdateDocument(ctx context.Context, in *UpdateDocumentRequest, opts ...grpc.CallOption) (*UpdateDocumentResponse, error)
+		// RPC 方法: DownloadFileRequest
+		ConvertMarkdown(ctx context.Context, in *ConvertMarkdownRequest, opts ...grpc.CallOption) (*ConvertMarkdownResponse, error)
 	}
 
 	defaultLlmCenter struct {
@@ -127,4 +131,10 @@ func (m *defaultLlmCenter) EditDocument(ctx context.Context, in *EditDocumentReq
 func (m *defaultLlmCenter) UpdateDocument(ctx context.Context, in *UpdateDocumentRequest, opts ...grpc.CallOption) (*UpdateDocumentResponse, error) {
 	client := pb.NewLlmCenterClient(m.cli.Conn())
 	return client.UpdateDocument(ctx, in, opts...)
+}
+
+// RPC 方法: DownloadFileRequest
+func (m *defaultLlmCenter) ConvertMarkdown(ctx context.Context, in *ConvertMarkdownRequest, opts ...grpc.CallOption) (*ConvertMarkdownResponse, error) {
+	client := pb.NewLlmCenterClient(m.cli.Conn())
+	return client.ConvertMarkdown(ctx, in, opts...)
 }

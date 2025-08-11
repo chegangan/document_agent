@@ -37,6 +37,11 @@ type Document struct {
 	CreatedAt string `json:"created_at"`
 }
 
+type DownloadFileRequest struct {
+	Prompt string `json:"prompt"`
+	Type   string `json:"type"` // "pdf" | "docx"
+}
+
 type EditDocumentRequest struct {
 	ConversationID   string `json:"conversation_id"`
 	MessageID        string `json:"message_id"`

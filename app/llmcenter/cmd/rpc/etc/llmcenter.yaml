@@ -40,3 +40,6 @@ LlmApiClient:
   MaxIdleConnsPerHost: 10
   IdleConnTimeout: 90  # s
   DisableCompression: true
+
+Font:
+  Path: "D:/vsproject/document_agent/pkg/assets/fonts"

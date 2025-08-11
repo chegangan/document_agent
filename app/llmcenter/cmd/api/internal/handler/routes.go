@@ -41,6 +41,12 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Path:    "/chat/update",
 				Handler: chat.UpdateDocumentHandler(serverCtx),
 			},
+			{
+				// 将Markdown转为相应格式并下载
+				Method:  http.MethodPost,
+				Path:    "/files/download",
+				Handler: chat.DownloadFileHandler(serverCtx),
+			},
 		},
 		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
 		rest.WithPrefix("/llmcenter/v1"),

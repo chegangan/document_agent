@@ -27,4 +27,7 @@ type Config struct {
 	Upload struct {
 		BaseDir string
 	}
+	Font struct {
+		Path string
+	}
 }

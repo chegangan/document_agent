@@ -57,6 +57,11 @@ service LlmCenter {
   // 对应 API: POST /llmcenter/v1/chat/update
   // 功能: 手动修改文档内容
   rpc UpdateDocument(UpdateDocumentRequest) returns (UpdateDocumentResponse);
+
+  // RPC 方法: DownloadFileRequest
+  // 对应 API: POST /llmcenter/v1/file/download
+  // 功能: 将Markdown转为相应格式并下载
+  rpc ConvertMarkdown(ConvertMarkdownRequest) returns (ConvertMarkdownResponse);
 }
 
 
@@ -194,6 +199,17 @@ message UpdateDocumentRequest {
 
 message UpdateDocumentResponse {
   bool success = 1;
+}
+
+message ConvertMarkdownRequest {
+  string markdown = 1;
+  string type = 2; // "pdf" | "docx"
+}
+
+message ConvertMarkdownResponse {
+  string filename = 1;
+  string content_type = 2;
+  bytes  data = 3;
 }
 
 

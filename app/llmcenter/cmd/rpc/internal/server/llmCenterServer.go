@@ -76,3 +76,9 @@ func (s *LlmCenterServer) UpdateDocument(ctx context.Context, in *pb.UpdateDocum
 	l := logic.NewUpdateDocumentLogic(ctx, s.svcCtx)
 	return l.UpdateDocument(in)
 }
+
+// RPC 方法: DownloadFileRequest
+func (s *LlmCenterServer) ConvertMarkdown(ctx context.Context, in *pb.ConvertMarkdownRequest) (*pb.ConvertMarkdownResponse, error) {
+	l := logic.NewConvertMarkdownLogic(ctx, s.svcCtx)
+	return l.ConvertMarkdown(in)
+}
