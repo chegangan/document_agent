@@ -31,6 +31,18 @@ type Conversation struct {
 	UpdatedAt      string `json:"updated_at"`
 }
 
+type ConvertMarkdownLinkRequest struct {
+	Type     string `json:"type"` // "pdf" | "docx"
+	Markdown string `json:"markdown"`
+}
+
+type ConvertMarkdownLinkResponse struct {
+	Filename    string `json:"filename"`
+	ContentType string `json:"content_type"`
+	Path        string `json:"path"`
+	Url         string `json:"url"`
+}
+
 type Document struct {
 	ID        string `json:"id"`
 	Content   string `json:"content"`
@@ -125,6 +137,12 @@ type Message struct {
 	Content     string `json:"content"`
 	ContentType string `json:"content_type"`
 	CreatedAt   string `json:"created_at"`
+}
+
+type PublicDownloadRequest struct {
+	Path string `form:"path"` // 文件名，如 01HXXX.pdf
+	Exp  int64  `form:"exp"`  // 过期时间戳（秒）
+	Sig  string `form:"sig"`  // HMAC-SHA256(base64url)
 }
 
 type Reference struct {

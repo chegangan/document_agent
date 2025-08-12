@@ -50,22 +50,30 @@ func (l *EditDocumentLogic) EditDocument(req *types.EditDocumentRequest) error {
 		KnowledgeBaseId:  req.KnowledgeBaseID,
 	}
 
-	stream, err := l.svcCtx.LLMCenterRpc.EditDocument(l.ctx, rpcReq)
+	// ✅ 1) 用 l.r.Context()，让客户端断开能级联取消
+	stream, err := l.svcCtx.LLMCenterRpc.EditDocument(l.r.Context(), rpcReq)
 	if err != nil {
 		http.Error(l.w, fmt.Sprintf("RPC error: %v", err), http.StatusInternalServerError)
 		return nil
 	}
 
+	// ✅ 2) 关键响应头
 	l.w.Header().Set("Content-Type", "text/event-stream")
 	l.w.Header().Set("Cache-Control", "no-cache")
 	l.w.Header().Set("Connection", "keep-alive")
 	l.w.Header().Set("Access-Control-Allow-Origin", "*")
+	l.w.Header().Set("X-Accel-Buffering", "no") // 告诉 Nginx 不要缓冲
+	l.w.Header().Del("Content-Length")          // 避免被当成定长响应缓存
 
 	flusher, ok := l.w.(http.Flusher)
 	if !ok {
 		http.Error(l.w, "Streaming not supported", http.StatusInternalServerError)
 		return nil
 	}
+
+	// ✅ 3) 首包打洞：注释行是 SSE 允许的格式
+	fmt.Fprint(l.w, ": connected\n\n")
+	flusher.Flush()
 
 	for {
 		resp, err := stream.Recv()
@@ -74,7 +82,7 @@ func (l *EditDocumentLogic) EditDocument(req *types.EditDocumentRequest) error {
 		}
 		if err != nil {
 			st, _ := status.FromError(err)
-			_ = l.sendSSE("error", map[string]interface{}{
+			_ = l.sendSSE("error", map[string]any{
 				"code":    st.Code(),
 				"message": st.Message(),
 			})

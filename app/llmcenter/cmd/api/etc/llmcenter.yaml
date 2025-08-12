@@ -44,3 +44,6 @@ FileCleaner:
   MaxSizeMB: 0                                        # 0 不限制，>0 则超过大小也删
   UseEtcdLock: true                                   # 是否走 etcd 分布式锁
   LockKey: "/locks/filecleaner"
+
+PublicDownload:
+  SignKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3ODQ1MzYzMTAsImlhdCI6MTc1MzAwMDMxMCwiand0VXNlcklkIjoyfQ.WFOrZn8VS6JozEf72ihiLUSGms9awjKtVeMwAdl6SjM"  # 和 RPC 一致

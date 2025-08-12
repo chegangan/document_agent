@@ -6,6 +6,7 @@ package handler
 import (
 	"net/http"
 
+	agent "document_agent/app/llmcenter/cmd/api/internal/handler/agent"
 	chat "document_agent/app/llmcenter/cmd/api/internal/handler/chat"
 	conversation "document_agent/app/llmcenter/cmd/api/internal/handler/conversation"
 	file "document_agent/app/llmcenter/cmd/api/internal/handler/file"
@@ -15,6 +16,24 @@ import (
 )
 
 func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				// Markdown 转文件并返回下载链接
+				Method:  http.MethodPost,
+				Path:    "/file/downloadlink",
+				Handler: agent.ConvertMarkdownLinkHandler(serverCtx),
+			},
+			{
+				// 公开下载（免 Header，签名校验）
+				Method:  http.MethodGet,
+				Path:    "/public/file",
+				Handler: agent.PublicDownloadHandler(serverCtx),
+			},
+		},
+		rest.WithPrefix("/llmcenter/v1"),
+	)
+
 	server.AddRoutes(
 		[]rest.Route{
 			{

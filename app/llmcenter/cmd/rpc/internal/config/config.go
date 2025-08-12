@@ -30,4 +30,9 @@ type Config struct {
 	Font struct {
 		Path string
 	}
+	Download struct {
+		BaseURL       string // 文件下载的基础 URL
+		SignKey       string // 用于签名的密钥
+		ExpireSeconds int    // 链接有效期，单位秒
+	}
 }

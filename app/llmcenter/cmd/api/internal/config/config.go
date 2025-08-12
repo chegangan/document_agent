@@ -31,5 +31,8 @@ type Config struct {
 		UseEtcdLock     bool
 		LockKey         string
 	}
+	PublicDownload struct {
+		SignKey string
+	}
 	LlmCenterRpcConf zrpc.RpcClientConf
 }

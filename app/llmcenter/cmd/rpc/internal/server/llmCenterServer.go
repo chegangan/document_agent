@@ -82,3 +82,9 @@ func (s *LlmCenterServer) ConvertMarkdown(ctx context.Context, in *pb.ConvertMar
 	l := logic.NewConvertMarkdownLogic(ctx, s.svcCtx)
 	return l.ConvertMarkdown(in)
 }
+
+// RPC 方法: DownloadFileLinkRequest
+func (s *LlmCenterServer) ConvertMarkdownLink(ctx context.Context, in *pb.ConvertMarkdownLinkRequest) (*pb.ConvertMarkdownLinkResponse, error) {
+	l := logic.NewConvertMarkdownLinkLogic(ctx, s.svcCtx)
+	return l.ConvertMarkdownLink(in)
+}

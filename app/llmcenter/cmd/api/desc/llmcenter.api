@@ -178,6 +178,24 @@ type DownloadFileRequest {
 	Type   string `json:"type"` // "pdf" | "docx"
 }
 
+type ConvertMarkdownLinkRequest {
+	Type     string `json:"type"` // "pdf" | "docx"
+	Markdown string `json:"markdown"`
+}
+
+type ConvertMarkdownLinkResponse {
+	Filename    string `json:"filename"`
+	ContentType string `json:"content_type"`
+	Path        string `json:"path"`
+	Url         string `json:"url"`
+}
+
+type PublicDownloadRequest {
+	Path string `form:"path"` // 文件名，如 01HXXX.pdf
+	Exp  int64  `form:"exp"` // 过期时间戳（秒）
+	Sig  string `form:"sig"` // HMAC-SHA256(base64url)
+}
+
 // ================== 服务定义 (Service Definition) ==================
 // 使用 @server 定义一组相关的 API。所有接口都需要 JWT 认证。
 // @server 注解用于定义服务配置。
@@ -251,5 +269,20 @@ service llmcenter {
 	@doc "根据会话ID获取该会话的历史数据（historydatas 表）"
 	@handler getHistoryData
 	get /historydatas/:conversation_id (GetHistoryDataRequest) returns (GetHistoryDataResponse)
+}
+
+//为工作流提供的接口（不需要jwt校验），网站前端不需要调用
+@server (
+	prefix: /llmcenter/v1
+	group:  agent
+)
+service llmcenter {
+	@doc "Markdown 转文件并返回下载链接"
+	@handler ConvertMarkdownLink
+	post /file/downloadlink (ConvertMarkdownLinkRequest) returns (ConvertMarkdownLinkResponse)
+
+	@doc "公开下载（免 Header，签名校验）"
+	@handler PublicDownload
+	get /public/file (PublicDownloadRequest)
 }
 

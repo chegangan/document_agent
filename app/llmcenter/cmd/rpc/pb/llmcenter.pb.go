@@ -1911,6 +1911,126 @@ func (x *SSEEndEvent) GetMessageId() string {
 	return ""
 }
 
+type ConvertMarkdownLinkRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`         // "pdf" | "docx"
+	Markdown      string                 `protobuf:"bytes,2,opt,name=markdown,proto3" json:"markdown,omitempty"` // 原文
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConvertMarkdownLinkRequest) Reset() {
+	*x = ConvertMarkdownLinkRequest{}
+	mi := &file_llmcenter_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConvertMarkdownLinkRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConvertMarkdownLinkRequest) ProtoMessage() {}
+
+func (x *ConvertMarkdownLinkRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_llmcenter_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConvertMarkdownLinkRequest.ProtoReflect.Descriptor instead.
+func (*ConvertMarkdownLinkRequest) Descriptor() ([]byte, []int) {
+	return file_llmcenter_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *ConvertMarkdownLinkRequest) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *ConvertMarkdownLinkRequest) GetMarkdown() string {
+	if x != nil {
+		return x.Markdown
+	}
+	return ""
+}
+
+type ConvertMarkdownLinkResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Filename      string                 `protobuf:"bytes,1,opt,name=filename,proto3" json:"filename,omitempty"`                          // 例如 export.pdf
+	ContentType   string                 `protobuf:"bytes,2,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"` // application/pdf / ...
+	Path          string                 `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`                                  // 相对存储路径（如 exports/2025-08-12/xxxxxx.pdf）
+	Url           string                 `protobuf:"bytes,4,opt,name=url,proto3" json:"url,omitempty"`                                    // 可下载的完整 URL（Download.BaseURL + "?path=" + path）
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConvertMarkdownLinkResponse) Reset() {
+	*x = ConvertMarkdownLinkResponse{}
+	mi := &file_llmcenter_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConvertMarkdownLinkResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConvertMarkdownLinkResponse) ProtoMessage() {}
+
+func (x *ConvertMarkdownLinkResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_llmcenter_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConvertMarkdownLinkResponse.ProtoReflect.Descriptor instead.
+func (*ConvertMarkdownLinkResponse) Descriptor() ([]byte, []int) {
+	return file_llmcenter_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *ConvertMarkdownLinkResponse) GetFilename() string {
+	if x != nil {
+		return x.Filename
+	}
+	return ""
+}
+
+func (x *ConvertMarkdownLinkResponse) GetContentType() string {
+	if x != nil {
+		return x.ContentType
+	}
+	return ""
+}
+
+func (x *ConvertMarkdownLinkResponse) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *ConvertMarkdownLinkResponse) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
 var File_llmcenter_proto protoreflect.FileDescriptor
 
 const file_llmcenter_proto_rawDesc = "" +
@@ -2045,7 +2165,15 @@ const file_llmcenter_proto_rawDesc = "" +
 	"\vSSEEndEvent\x12'\n" +
 	"\x0fconversation_id\x18\x01 \x01(\tR\x0econversationId\x12\x1d\n" +
 	"\n" +
-	"message_id\x18\x02 \x01(\tR\tmessageId2\x85\a\n" +
+	"message_id\x18\x02 \x01(\tR\tmessageId\"L\n" +
+	"\x1aConvertMarkdownLinkRequest\x12\x12\n" +
+	"\x04type\x18\x01 \x01(\tR\x04type\x12\x1a\n" +
+	"\bmarkdown\x18\x02 \x01(\tR\bmarkdown\"\x82\x01\n" +
+	"\x1bConvertMarkdownLinkResponse\x12\x1a\n" +
+	"\bfilename\x18\x01 \x01(\tR\bfilename\x12!\n" +
+	"\fcontent_type\x18\x02 \x01(\tR\vcontentType\x12\x12\n" +
+	"\x04path\x18\x03 \x01(\tR\x04path\x12\x10\n" +
+	"\x03url\x18\x04 \x01(\tR\x03url2\xeb\a\n" +
 	"\tLlmCenter\x12Z\n" +
 	"\x0fChatCompletions\x12!.llmcenter.ChatCompletionsRequest\x1a\".llmcenter.ChatCompletionsResponse0\x01\x12K\n" +
 	"\n" +
@@ -2058,7 +2186,8 @@ const file_llmcenter_proto_rawDesc = "" +
 	"\x0eGetHistoryData\x12 .llmcenter.GetHistoryDataRequest\x1a!.llmcenter.GetHistoryDataResponse\x12Q\n" +
 	"\fEditDocument\x12\x1e.llmcenter.EditDocumentRequest\x1a\x1f.llmcenter.EditDocumentResponse0\x01\x12U\n" +
 	"\x0eUpdateDocument\x12 .llmcenter.UpdateDocumentRequest\x1a!.llmcenter.UpdateDocumentResponse\x12X\n" +
-	"\x0fConvertMarkdown\x12!.llmcenter.ConvertMarkdownRequest\x1a\".llmcenter.ConvertMarkdownResponseB\x06Z\x04./pbb\x06proto3"
+	"\x0fConvertMarkdown\x12!.llmcenter.ConvertMarkdownRequest\x1a\".llmcenter.ConvertMarkdownResponse\x12d\n" +
+	"\x13ConvertMarkdownLink\x12%.llmcenter.ConvertMarkdownLinkRequest\x1a&.llmcenter.ConvertMarkdownLinkResponseB\x06Z\x04./pbb\x06proto3"
 
 var (
 	file_llmcenter_proto_rawDescOnce sync.Once
@@ -2072,7 +2201,7 @@ func file_llmcenter_proto_rawDescGZIP() []byte {
 	return file_llmcenter_proto_rawDescData
 }
 
-var file_llmcenter_proto_msgTypes = make([]protoimpl.MessageInfo, 30)
+var file_llmcenter_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
 var file_llmcenter_proto_goTypes = []any{
 	(*ChatCompletionsRequest)(nil),        // 0: llmcenter.ChatCompletionsRequest
 	(*ChatCompletionsResponse)(nil),       // 1: llmcenter.ChatCompletionsResponse
@@ -2104,6 +2233,8 @@ var file_llmcenter_proto_goTypes = []any{
 	(*SSEMessageEvent)(nil),               // 27: llmcenter.SSEMessageEvent
 	(*SSEInterruptEvent)(nil),             // 28: llmcenter.SSEInterruptEvent
 	(*SSEEndEvent)(nil),                   // 29: llmcenter.SSEEndEvent
+	(*ConvertMarkdownLinkRequest)(nil),    // 30: llmcenter.ConvertMarkdownLinkRequest
+	(*ConvertMarkdownLinkResponse)(nil),   // 31: llmcenter.ConvertMarkdownLinkResponse
 }
 var file_llmcenter_proto_depIdxs = []int32{
 	24, // 0: llmcenter.ChatCompletionsRequest.references:type_name -> llmcenter.Reference
@@ -2130,18 +2261,20 @@ var file_llmcenter_proto_depIdxs = []int32{
 	15, // 21: llmcenter.LlmCenter.EditDocument:input_type -> llmcenter.EditDocumentRequest
 	17, // 22: llmcenter.LlmCenter.UpdateDocument:input_type -> llmcenter.UpdateDocumentRequest
 	19, // 23: llmcenter.LlmCenter.ConvertMarkdown:input_type -> llmcenter.ConvertMarkdownRequest
-	1,  // 24: llmcenter.LlmCenter.ChatCompletions:output_type -> llmcenter.ChatCompletionsResponse
-	3,  // 25: llmcenter.LlmCenter.ChatResume:output_type -> llmcenter.ChatResumeResponse
-	23, // 26: llmcenter.LlmCenter.FileUpload:output_type -> llmcenter.FileUploadResponse
-	5,  // 27: llmcenter.LlmCenter.GetConversations:output_type -> llmcenter.GetConversationsResponse
-	7,  // 28: llmcenter.LlmCenter.GetConversationDetail:output_type -> llmcenter.GetConversationDetailResponse
-	10, // 29: llmcenter.LlmCenter.GetDocumentDetail:output_type -> llmcenter.GetDocumentDetailResponse
-	12, // 30: llmcenter.LlmCenter.GetHistoryData:output_type -> llmcenter.GetHistoryDataResponse
-	16, // 31: llmcenter.LlmCenter.EditDocument:output_type -> llmcenter.EditDocumentResponse
-	18, // 32: llmcenter.LlmCenter.UpdateDocument:output_type -> llmcenter.UpdateDocumentResponse
-	20, // 33: llmcenter.LlmCenter.ConvertMarkdown:output_type -> llmcenter.ConvertMarkdownResponse
-	24, // [24:34] is the sub-list for method output_type
-	14, // [14:24] is the sub-list for method input_type
+	30, // 24: llmcenter.LlmCenter.ConvertMarkdownLink:input_type -> llmcenter.ConvertMarkdownLinkRequest
+	1,  // 25: llmcenter.LlmCenter.ChatCompletions:output_type -> llmcenter.ChatCompletionsResponse
+	3,  // 26: llmcenter.LlmCenter.ChatResume:output_type -> llmcenter.ChatResumeResponse
+	23, // 27: llmcenter.LlmCenter.FileUpload:output_type -> llmcenter.FileUploadResponse
+	5,  // 28: llmcenter.LlmCenter.GetConversations:output_type -> llmcenter.GetConversationsResponse
+	7,  // 29: llmcenter.LlmCenter.GetConversationDetail:output_type -> llmcenter.GetConversationDetailResponse
+	10, // 30: llmcenter.LlmCenter.GetDocumentDetail:output_type -> llmcenter.GetDocumentDetailResponse
+	12, // 31: llmcenter.LlmCenter.GetHistoryData:output_type -> llmcenter.GetHistoryDataResponse
+	16, // 32: llmcenter.LlmCenter.EditDocument:output_type -> llmcenter.EditDocumentResponse
+	18, // 33: llmcenter.LlmCenter.UpdateDocument:output_type -> llmcenter.UpdateDocumentResponse
+	20, // 34: llmcenter.LlmCenter.ConvertMarkdown:output_type -> llmcenter.ConvertMarkdownResponse
+	31, // 35: llmcenter.LlmCenter.ConvertMarkdownLink:output_type -> llmcenter.ConvertMarkdownLinkResponse
+	25, // [25:36] is the sub-list for method output_type
+	14, // [14:25] is the sub-list for method input_type
 	14, // [14:14] is the sub-list for extension type_name
 	14, // [14:14] is the sub-list for extension extendee
 	0,  // [0:14] is the sub-list for field type_name
@@ -2175,7 +2308,7 @@ func file_llmcenter_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_llmcenter_proto_rawDesc), len(file_llmcenter_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   30,
+			NumMessages:   32,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
