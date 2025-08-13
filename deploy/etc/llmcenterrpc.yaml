@@ -32,7 +32,7 @@ Redis:
   Key: llmcenter:redis
   
 Upload:
-  BaseDir: data/static
+  BaseDir: /app/data/static
 
 LlmApiClient:
   Timeout: 200  # s

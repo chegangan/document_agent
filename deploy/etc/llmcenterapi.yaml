@@ -34,11 +34,11 @@ DB:
   DataSource: llmcenter:G7v@pL2#xQ9!sT8z@tcp(mysql:3306)/document_agent_llmcenter?charset=utf8mb4&parseTime=true&loc=Asia%2FShanghai
 
 Upload:
-  BaseDir: data/static
+  BaseDir: /app/data/static
 
 FileCleaner:
   Enable: true
-  Dir: "data/static"      # 要清理的目录
+  Dir: "/app/data/static"      # 要清理的目录
   RetentionDays: 1                                    # 保留天数，早于此的删
   IntervalMinutes: 60                                 # 多久执行一次
   MaxSizeMB: 0                                        # 0 不限制，>0 则超过大小也删

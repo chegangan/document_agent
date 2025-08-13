@@ -33,6 +33,8 @@ WORKDIR /app
 # 从 builder 阶段复制编译好的二进制文件
 COPY --from=builder /app/llmcenter-rpc .
 
+COPY app/llmcenter/cmd/data/static /data/static
+
 # 暴露 RPC 服务端口
 EXPOSE 8011
 

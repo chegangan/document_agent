@@ -12,6 +12,7 @@ x-logging: &default-logging
     max-file: "1"   # 最多保留1个文件
 
 
+
 services:
   # --- UserCenter Services ---
   usercenter-api:
@@ -68,7 +69,7 @@ services:
       - etcd
     volumes:
       - ./deploy/etc/llmcenterapi.yaml:/app/etc/llmcenter.yaml
-      - ./data/static:/data/static
+      - ./data/static:/app/data/static
     environment:
       - TZ=Asia/Shanghai
     logging: *default-logging
@@ -94,7 +95,7 @@ services:
     volumes:
       # 同样挂载，确保 RPC 服务能访问到 API 服务上传的文件
       - ./deploy/etc/llmcenterrpc.yaml:/app/etc/llmcenter.yaml
-      - ./data/static:/data/static
+      - ./data/static:/app/data/static
     environment:
       - TZ=Asia/Shanghai
     logging: *default-logging
@@ -102,10 +103,10 @@ services:
 
   # --- Infrastructure Services ---
   mysql:
-    image: mysql/mysql-server:8.0.28
+    image: docker.m.daocloud.io/mysql/mysql-server:8.0.28
     container_name: mysql
-    ports:
-      - "3306:3306"
+    # ports:
+    #   - "3306:3306"
     networks:
       - document_agent_net
     env_file:
@@ -123,10 +124,10 @@ services:
     restart: always
 
   redis:
-    image: redis:6.2.5
+    image: docker.m.daocloud.io/redis:6.2.5
     container_name: redis
-    ports:
-      - "6379:6379"
+    # ports:
+    #   - "6379:6379"
     networks:
       - document_agent_net
     environment:
@@ -142,7 +143,7 @@ services:
     restart: always
 
   etcd:
-    image: bitnami/etcd:3.5.15
+    image: docker.m.daocloud.io/bitnami/etcd:3.5.15
     container_name: etcd
     networks:
       - document_agent_net
@@ -154,10 +155,10 @@ services:
 
   # --- Swagger UI Service ---
   swagger-ui:
-    image: swaggerapi/swagger-ui
+    image: docker.m.daocloud.io/swaggerapi/swagger-ui
     container_name: swagger-ui
-    ports:
-      - "8002:8080"
+    # ports:
+    #   - "8002:8080"
     networks:
       - document_agent_net
     volumes:
