@@ -44,7 +44,7 @@ func (l *ChatCompletionsLogic) ChatCompletions(in *pb.ChatCompletionsRequest, st
 	}
 
 	// 2. 构造最终的 prompt
-	basePrompt := fmt.Sprintf("请写一篇%s，%s，%s", in.Documenttype, in.Information, in.Requests)
+	basePrompt := fmt.Sprintf("%s请写一篇%s，基本信息：%s，特殊要求：%s", l.svcCtx.Config.XingChen.FlagCode, in.Documenttype, in.Information, in.Requests)
 
 	// 3. 处理文件引用，并增强 prompt（传入 basePrompt）
 	finalPrompt, imgURL, err := l.processReferences(basePrompt, in.References)

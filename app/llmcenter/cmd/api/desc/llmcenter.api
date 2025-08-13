@@ -163,6 +163,39 @@ type EditDocumentRequest {
 
 type EditDocumentResponse {}
 
+type UpdateDocumentRequest {
+	conversation_id string `json:"conversation_id"`
+	message_id      string `json:"message_id"`
+	prompt          string `json:"prompt"`
+}
+
+type UpdateDocumentResponse {
+	success bool `json:"success"`
+}
+
+type DownloadFileRequest {
+	Prompt string `json:"prompt"`
+	Type   string `json:"type"` // "pdf" | "docx"
+}
+
+type ConvertMarkdownLinkRequest {
+	Type     string `json:"type"` // "pdf" | "docx"
+	Markdown string `json:"markdown"`
+}
+
+type ConvertMarkdownLinkResponse {
+	Filename    string `json:"filename"`
+	ContentType string `json:"content_type"`
+	Path        string `json:"path"`
+	Url         string `json:"url"`
+}
+
+type PublicDownloadRequest {
+	Path string `form:"path"` // 文件名，如 01HXXX.pdf
+	Exp  int64  `form:"exp"` // 过期时间戳（秒）
+	Sig  string `form:"sig"` // HMAC-SHA256(base64url)
+}
+
 // ================== 服务定义 (Service Definition) ==================
 // 使用 @server 定义一组相关的 API。所有接口都需要 JWT 认证。
 // @server 注解用于定义服务配置。
@@ -184,6 +217,18 @@ service llmcenter {
 	@doc "在工作流中断后, 发送用户编辑好的内容以继续流程 (SSE 流式响应)"
 	@handler chatResume
 	post /chat/resume (ChatResumeRequest) returns (ChatResumeResponse)
+
+	@doc "根据修改提示编辑现有文章 (SSE 流式响应)"
+	@handler editDocument
+	post /chat/edit (EditDocumentRequest) returns (EditDocumentResponse)
+
+	@doc "手动修改公文内容"
+	@handler UpdateDocument
+	post /chat/update (UpdateDocumentRequest) returns (UpdateDocumentResponse)
+
+	@doc "将Markdown转为相应格式并下载"
+	@handler DownloadFile
+	post /files/download (DownloadFileRequest)
 }
 
 // 备注: 后端需要实现一个定时任务，用于清理过期的临时文件及其在数据库中的记录，
@@ -224,9 +269,20 @@ service llmcenter {
 	@doc "根据会话ID获取该会话的历史数据（historydatas 表）"
 	@handler getHistoryData
 	get /historydatas/:conversation_id (GetHistoryDataRequest) returns (GetHistoryDataResponse)
+}
 
-	@doc "根据修改提示编辑现有文章 (SSE 流式响应)"
-	@handler editDocument
-	post /chat/edit (EditDocumentRequest) returns (EditDocumentResponse)
+//为工作流提供的接口（不需要jwt校验），网站前端不需要调用
+@server (
+	prefix: /llmcenter/v1
+	group:  agent
+)
+service llmcenter {
+	@doc "Markdown 转文件并返回下载链接"
+	@handler ConvertMarkdownLink
+	post /file/downloadlink (ConvertMarkdownLinkRequest) returns (ConvertMarkdownLinkResponse)
+
+	@doc "公开下载（免 Header，签名校验）"
+	@handler PublicDownload
+	get /public/file (PublicDownloadRequest)
 }
 

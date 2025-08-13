@@ -40,7 +40,7 @@ func (l *EditDocumentLogic) EditDocument(in *pb.EditDocumentRequest, stream pb.L
 	}
 
 	// 构造 prompt
-	prompt := fmt.Sprintf("请根据以下提示修改文档内容：\n\n原文：\n%s\n\n修改提示：%s", doc.Content, in.Prompt)
+	prompt := fmt.Sprintf("%s请根据以下提示修改文档内容：\n\n原文：\n%s\n\n修改提示：%s", l.svcCtx.Config.XingChen.FlagCode, doc.Content, in.Prompt)
 
 	llmReq := types.LLMApiRequest{
 		FlowID: l.svcCtx.Config.XingChen.FlowID,

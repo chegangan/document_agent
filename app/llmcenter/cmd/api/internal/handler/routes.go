@@ -6,6 +6,7 @@ package handler
 import (
 	"net/http"
 
+	agent "document_agent/app/llmcenter/cmd/api/internal/handler/agent"
 	chat "document_agent/app/llmcenter/cmd/api/internal/handler/chat"
 	conversation "document_agent/app/llmcenter/cmd/api/internal/handler/conversation"
 	file "document_agent/app/llmcenter/cmd/api/internal/handler/file"
@@ -18,10 +19,34 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 	server.AddRoutes(
 		[]rest.Route{
 			{
+				// Markdown 转文件并返回下载链接
+				Method:  http.MethodPost,
+				Path:    "/file/downloadlink",
+				Handler: agent.ConvertMarkdownLinkHandler(serverCtx),
+			},
+			{
+				// 公开下载（免 Header，签名校验）
+				Method:  http.MethodGet,
+				Path:    "/public/file",
+				Handler: agent.PublicDownloadHandler(serverCtx),
+			},
+		},
+		rest.WithPrefix("/llmcenter/v1"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
 				// 发起新对话或在现有对话中发送消息 (SSE 流式响应)
 				Method:  http.MethodPost,
 				Path:    "/chat/completions",
 				Handler: chat.ChatCompletionsHandler(serverCtx),
+			},
+			{
+				// 根据修改提示编辑现有文章 (SSE 流式响应)
+				Method:  http.MethodPost,
+				Path:    "/chat/edit",
+				Handler: chat.EditDocumentHandler(serverCtx),
 			},
 			{
 				// 在工作流中断后, 发送用户编辑好的内容以继续流程 (SSE 流式响应)
@@ -30,10 +55,16 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Handler: chat.ChatResumeHandler(serverCtx),
 			},
 			{
-				// 根据修改提示编辑现有文章 (SSE 流式响应)
+				// 手动修改公文内容
 				Method:  http.MethodPost,
-				Path:    "/chat/edit",
-				Handler: chat.EditDocumentHandler(serverCtx),
+				Path:    "/chat/update",
+				Handler: chat.UpdateDocumentHandler(serverCtx),
+			},
+			{
+				// 将Markdown转为相应格式并下载
+				Method:  http.MethodPost,
+				Path:    "/files/download",
+				Handler: chat.DownloadFileHandler(serverCtx),
 			},
 		},
 		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),

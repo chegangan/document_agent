@@ -16,6 +16,7 @@ type Config struct {
 		ApiKey       string // 星辰大模型 API 的 Key
 		ApiSecret    string // 星辰大模型 API 的 Secret
 		UploadURL    string // 星辰大模型上传图片的 URL
+		FlagCode     string // 星辰大模型判断为后端发送请求的标识码
 	}
 	LlmApiClient struct {
 		Timeout             int
@@ -26,5 +27,13 @@ type Config struct {
 	}
 	Upload struct {
 		BaseDir string
+	}
+	Font struct {
+		Path string
+	}
+	Download struct {
+		BaseURL       string // 文件下载的基础 URL
+		SignKey       string // 用于签名的密钥
+		ExpireSeconds int    // 链接有效期，单位秒
 	}
 }

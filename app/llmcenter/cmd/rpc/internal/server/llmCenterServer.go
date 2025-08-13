@@ -70,3 +70,21 @@ func (s *LlmCenterServer) EditDocument(in *pb.EditDocumentRequest, stream pb.Llm
 	l := logic.NewEditDocumentLogic(stream.Context(), s.svcCtx)
 	return l.EditDocument(in, stream)
 }
+
+// RPC 方法: UpdateDocumentRequest
+func (s *LlmCenterServer) UpdateDocument(ctx context.Context, in *pb.UpdateDocumentRequest) (*pb.UpdateDocumentResponse, error) {
+	l := logic.NewUpdateDocumentLogic(ctx, s.svcCtx)
+	return l.UpdateDocument(in)
+}
+
+// RPC 方法: DownloadFileRequest
+func (s *LlmCenterServer) ConvertMarkdown(ctx context.Context, in *pb.ConvertMarkdownRequest) (*pb.ConvertMarkdownResponse, error) {
+	l := logic.NewConvertMarkdownLogic(ctx, s.svcCtx)
+	return l.ConvertMarkdown(in)
+}
+
+// RPC 方法: DownloadFileLinkRequest
+func (s *LlmCenterServer) ConvertMarkdownLink(ctx context.Context, in *pb.ConvertMarkdownLinkRequest) (*pb.ConvertMarkdownLinkResponse, error) {
+	l := logic.NewConvertMarkdownLinkLogic(ctx, s.svcCtx)
+	return l.ConvertMarkdownLink(in)
+}

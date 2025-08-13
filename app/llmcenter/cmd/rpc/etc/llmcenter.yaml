@@ -2,6 +2,8 @@ Name: llmcenter.rpc
 ListenOn: 0.0.0.0:8011
 Mode: pro
 
+Timeout:  180000 # 毫秒, 180000ms = 3 分钟
+
 Log:
   ServiceName: llmcenter-rpc
   Level: error
@@ -17,12 +19,13 @@ DB:
   DataSource: llmcenter:G7v@pL2#xQ9!sT8z@tcp(mysql:3306)/document_agent_llmcenter?charset=utf8mb4&parseTime=true&loc=Asia%2FShanghai
 
 XingChen:
-  FlowID: "7357993702047178753"
+  FlowID: "7361277433865613314"
   ApiURL: "https://xingchen-api.xf-yun.com/workflow/v1/chat/completions"
   ApiResumeURL: "https://xingchen-api.xf-yun.com/workflow/v1/resume"
   ApiSecret: "MmVmZmY4YjhhMmQzMWUxMTllNTFiZjhj"
   ApiKey: "a08967af6fefaf656356d138b67947cf"
   UploadURL: "https://xingchen-api.xf-yun.com/workflow/v1/upload_file"
+  FlagCode: "1433"
 
 Redis:
   Host: redis:6379
@@ -40,3 +43,13 @@ LlmApiClient:
   MaxIdleConnsPerHost: 10
   IdleConnTimeout: 90  # s
   DisableCompression: true
+
+Font:
+  Path: "D:/vsproject/document_agent/pkg/assets/fonts"
+
+Download:
+  BaseURL: "http://127.0.0.1:8010/llmcenter/v1/public/file"
+  # 与 API 共享的签名密钥（两边保持一致）
+  SignKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3ODQ1MzYzMTAsImlhdCI6MTc1MzAwMDMxMCwiand0VXNlcklkIjoyfQ.WFOrZn8VS6JozEf72ihiLUSGms9awjKtVeMwAdl6SjM"
+  # 链接有效期（秒）
+  ExpireSeconds: 600

@@ -52,6 +52,21 @@ service LlmCenter {
   // 对应 API: POST /llmcenter/v1/chat/edit
   // 功能: 获取指定会话的历史数据
   rpc EditDocument(EditDocumentRequest) returns (stream EditDocumentResponse);
+
+  // RPC 方法: UpdateDocumentRequest
+  // 对应 API: POST /llmcenter/v1/chat/update
+  // 功能: 手动修改文档内容
+  rpc UpdateDocument(UpdateDocumentRequest) returns (UpdateDocumentResponse);
+
+  // RPC 方法: DownloadFileRequest
+  // 对应 API: POST /llmcenter/v1/file/download
+  // 功能: 将Markdown转为相应格式并下载
+  rpc ConvertMarkdown(ConvertMarkdownRequest) returns (ConvertMarkdownResponse);
+
+  // RPC 方法: DownloadFileLinkRequest
+  // 对应 API: POST /llmcenter/v1/file/downloadlink
+  // 功能: 将Markdown转为相应格式并返回下载链接
+  rpc ConvertMarkdownLink (ConvertMarkdownLinkRequest) returns (ConvertMarkdownLinkResponse);
 }
 
 
@@ -181,6 +196,27 @@ message EditDocumentResponse {
   }
 }
 
+message UpdateDocumentRequest {
+  string conversation_id = 1;
+  string message_id = 2;
+  string prompt = 3;
+}
+
+message UpdateDocumentResponse {
+  bool success = 1;
+}
+
+message ConvertMarkdownRequest {
+  string markdown = 1;
+  string type = 2; // "pdf" | "docx"
+}
+
+message ConvertMarkdownResponse {
+  string filename = 1;
+  string content_type = 2;
+  bytes  data = 3;
+}
+
 
 // ===================================================================
 //  Message Definitions: File Upload
@@ -260,4 +296,22 @@ message SSEInterruptEvent {
 message SSEEndEvent {
   string conversation_id = 1; // 本次交互所属的会话ID
   string message_id = 2;      // 本次交互最终生成的完整消息ID
+}
+
+
+
+// ===================================================================
+//  工作流使用接口数据
+// ===================================================================
+
+message ConvertMarkdownLinkRequest {
+  string type = 1;      // "pdf" | "docx"
+  string markdown = 2;  // 原文
+}
+
+message ConvertMarkdownLinkResponse {
+  string filename = 1;      // 例如 export.pdf
+  string content_type = 2;  // application/pdf / ...
+  string path = 3;          // 相对存储路径（如 exports/2025-08-12/xxxxxx.pdf）
+  string url = 4;           // 可下载的完整 URL（Download.BaseURL + "?path=" + path）
 }

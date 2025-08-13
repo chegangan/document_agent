@@ -31,6 +31,9 @@ const (
 	LlmCenter_GetDocumentDetail_FullMethodName     = "/llmcenter.LlmCenter/GetDocumentDetail"
 	LlmCenter_GetHistoryData_FullMethodName        = "/llmcenter.LlmCenter/GetHistoryData"
 	LlmCenter_EditDocument_FullMethodName          = "/llmcenter.LlmCenter/EditDocument"
+	LlmCenter_UpdateDocument_FullMethodName        = "/llmcenter.LlmCenter/UpdateDocument"
+	LlmCenter_ConvertMarkdown_FullMethodName       = "/llmcenter.LlmCenter/ConvertMarkdown"
+	LlmCenter_ConvertMarkdownLink_FullMethodName   = "/llmcenter.LlmCenter/ConvertMarkdownLink"
 )
 
 // LlmCenterClient is the client API for LlmCenter service.
@@ -69,6 +72,18 @@ type LlmCenterClient interface {
 	// 对应 API: POST /llmcenter/v1/chat/edit
 	// 功能: 获取指定会话的历史数据
 	EditDocument(ctx context.Context, in *EditDocumentRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[EditDocumentResponse], error)
+	// RPC 方法: UpdateDocumentRequest
+	// 对应 API: POST /llmcenter/v1/chat/update
+	// 功能: 手动修改文档内容
+	UpdateDocument(ctx context.Context, in *UpdateDocumentRequest, opts ...grpc.CallOption) (*UpdateDocumentResponse, error)
+	// RPC 方法: DownloadFileRequest
+	// 对应 API: POST /llmcenter/v1/file/download
+	// 功能: 将Markdown转为相应格式并下载
+	ConvertMarkdown(ctx context.Context, in *ConvertMarkdownRequest, opts ...grpc.CallOption) (*ConvertMarkdownResponse, error)
+	// RPC 方法: DownloadFileLinkRequest
+	// 对应 API: POST /llmcenter/v1/file/downloadlink
+	// 功能: 将Markdown转为相应格式并返回下载链接
+	ConvertMarkdownLink(ctx context.Context, in *ConvertMarkdownLinkRequest, opts ...grpc.CallOption) (*ConvertMarkdownLinkResponse, error)
 }
 
 type llmCenterClient struct {
@@ -189,6 +204,36 @@ func (c *llmCenterClient) EditDocument(ctx context.Context, in *EditDocumentRequ
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type LlmCenter_EditDocumentClient = grpc.ServerStreamingClient[EditDocumentResponse]
 
+func (c *llmCenterClient) UpdateDocument(ctx context.Context, in *UpdateDocumentRequest, opts ...grpc.CallOption) (*UpdateDocumentResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateDocumentResponse)
+	err := c.cc.Invoke(ctx, LlmCenter_UpdateDocument_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *llmCenterClient) ConvertMarkdown(ctx context.Context, in *ConvertMarkdownRequest, opts ...grpc.CallOption) (*ConvertMarkdownResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ConvertMarkdownResponse)
+	err := c.cc.Invoke(ctx, LlmCenter_ConvertMarkdown_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *llmCenterClient) ConvertMarkdownLink(ctx context.Context, in *ConvertMarkdownLinkRequest, opts ...grpc.CallOption) (*ConvertMarkdownLinkResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ConvertMarkdownLinkResponse)
+	err := c.cc.Invoke(ctx, LlmCenter_ConvertMarkdownLink_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // LlmCenterServer is the server API for LlmCenter service.
 // All implementations must embed UnimplementedLlmCenterServer
 // for forward compatibility.
@@ -225,6 +270,18 @@ type LlmCenterServer interface {
 	// 对应 API: POST /llmcenter/v1/chat/edit
 	// 功能: 获取指定会话的历史数据
 	EditDocument(*EditDocumentRequest, grpc.ServerStreamingServer[EditDocumentResponse]) error
+	// RPC 方法: UpdateDocumentRequest
+	// 对应 API: POST /llmcenter/v1/chat/update
+	// 功能: 手动修改文档内容
+	UpdateDocument(context.Context, *UpdateDocumentRequest) (*UpdateDocumentResponse, error)
+	// RPC 方法: DownloadFileRequest
+	// 对应 API: POST /llmcenter/v1/file/download
+	// 功能: 将Markdown转为相应格式并下载
+	ConvertMarkdown(context.Context, *ConvertMarkdownRequest) (*ConvertMarkdownResponse, error)
+	// RPC 方法: DownloadFileLinkRequest
+	// 对应 API: POST /llmcenter/v1/file/downloadlink
+	// 功能: 将Markdown转为相应格式并返回下载链接
+	ConvertMarkdownLink(context.Context, *ConvertMarkdownLinkRequest) (*ConvertMarkdownLinkResponse, error)
 	mustEmbedUnimplementedLlmCenterServer()
 }
 
@@ -258,6 +315,15 @@ func (UnimplementedLlmCenterServer) GetHistoryData(context.Context, *GetHistoryD
 }
 func (UnimplementedLlmCenterServer) EditDocument(*EditDocumentRequest, grpc.ServerStreamingServer[EditDocumentResponse]) error {
 	return status.Errorf(codes.Unimplemented, "method EditDocument not implemented")
+}
+func (UnimplementedLlmCenterServer) UpdateDocument(context.Context, *UpdateDocumentRequest) (*UpdateDocumentResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateDocument not implemented")
+}
+func (UnimplementedLlmCenterServer) ConvertMarkdown(context.Context, *ConvertMarkdownRequest) (*ConvertMarkdownResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ConvertMarkdown not implemented")
+}
+func (UnimplementedLlmCenterServer) ConvertMarkdownLink(context.Context, *ConvertMarkdownLinkRequest) (*ConvertMarkdownLinkResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ConvertMarkdownLink not implemented")
 }
 func (UnimplementedLlmCenterServer) mustEmbedUnimplementedLlmCenterServer() {}
 func (UnimplementedLlmCenterServer) testEmbeddedByValue()                   {}
@@ -392,6 +458,60 @@ func _LlmCenter_EditDocument_Handler(srv interface{}, stream grpc.ServerStream) 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type LlmCenter_EditDocumentServer = grpc.ServerStreamingServer[EditDocumentResponse]
 
+func _LlmCenter_UpdateDocument_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateDocumentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LlmCenterServer).UpdateDocument(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LlmCenter_UpdateDocument_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LlmCenterServer).UpdateDocument(ctx, req.(*UpdateDocumentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _LlmCenter_ConvertMarkdown_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConvertMarkdownRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LlmCenterServer).ConvertMarkdown(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LlmCenter_ConvertMarkdown_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LlmCenterServer).ConvertMarkdown(ctx, req.(*ConvertMarkdownRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _LlmCenter_ConvertMarkdownLink_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConvertMarkdownLinkRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LlmCenterServer).ConvertMarkdownLink(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LlmCenter_ConvertMarkdownLink_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LlmCenterServer).ConvertMarkdownLink(ctx, req.(*ConvertMarkdownLinkRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // LlmCenter_ServiceDesc is the grpc.ServiceDesc for LlmCenter service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -414,6 +534,18 @@ var LlmCenter_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetHistoryData",
 			Handler:    _LlmCenter_GetHistoryData_Handler,
+		},
+		{
+			MethodName: "UpdateDocument",
+			Handler:    _LlmCenter_UpdateDocument_Handler,
+		},
+		{
+			MethodName: "ConvertMarkdown",
+			Handler:    _LlmCenter_ConvertMarkdown_Handler,
+		},
+		{
+			MethodName: "ConvertMarkdownLink",
+			Handler:    _LlmCenter_ConvertMarkdownLink_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

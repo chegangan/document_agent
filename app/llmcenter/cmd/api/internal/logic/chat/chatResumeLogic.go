@@ -68,6 +68,11 @@ func (l *ChatResumeLogic) ChatResume(req *types.ChatResumeRequest) error {
 	l.w.Header().Set("Connection", "keep-alive")
 	l.w.Header().Set("Access-Control-Allow-Origin", "*") // [安全注意] 生产环境请设置为你的前端域名
 
+	// 告诉 Nginx / OpenResty 不要缓冲
+	l.w.Header().Set("X-Accel-Buffering", "no")
+	// 某些代理看到 Content-Length 会缓存，确保没有 Content-Length
+	l.w.Header().Del("Content-Length")
+
 	flusher, ok := l.w.(http.Flusher)
 	if !ok {
 		l.Errorf("Streaming not supported")
@@ -138,8 +143,8 @@ func (l *ChatResumeLogic) sendSSE(event string, data interface{}) error {
 	}
 
 	// 确保数据立即发送
-    if flusher, ok := l.w.(http.Flusher); ok {
-        flusher.Flush()
-    }
-    return nil
+	if flusher, ok := l.w.(http.Flusher); ok {
+		flusher.Flush()
+	}
+	return nil
 }
