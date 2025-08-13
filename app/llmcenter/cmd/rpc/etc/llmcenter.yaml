@@ -2,6 +2,8 @@ Name: llmcenter.rpc
 ListenOn: 0.0.0.0:8011
 Mode: dev
 
+Timeout:  180000 # 毫秒, 180000ms = 3 分钟
+
 Log:
   ServiceName: llmcenter-rpc
   Level: error

@@ -29,6 +29,7 @@ LlmCenterRpcConf:
       - localhost:2379
     Key: llmcenter.rpc
   NonBlock: true
+  Timeout: 180000 # 毫秒, 180000ms = 3 分钟
 
 DB:
   DataSource: llmcenter:G7v@pL2#xQ9!sT8z@tcp(localhost:3306)/document_agent_llmcenter?charset=utf8mb4&parseTime=true&loc=Asia%2FShanghai

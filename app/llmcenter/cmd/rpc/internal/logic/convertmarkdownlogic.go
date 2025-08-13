@@ -1,23 +1,19 @@
 package logic
 
 import (
-	"archive/zip"
 	"bytes"
 	"context"
 	"fmt"
 	"html"
-	"regexp"
-	"sort"
-	"strconv"
+	"os"
+	"os/exec"
+	"runtime"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"document_agent/app/llmcenter/cmd/rpc/internal/svc"
 	"document_agent/app/llmcenter/cmd/rpc/pb"
-	"github.com/jung-kurt/gofpdf"
 	"github.com/zeromicro/go-zero/core/logx"
-	"golang.org/x/text/encoding/simplifiedchinese"
 )
 
 type ConvertMarkdownLogic struct {
@@ -35,461 +31,248 @@ func (l *ConvertMarkdownLogic) ConvertMarkdown(in *pb.ConvertMarkdownRequest) (*
 	if t != "pdf" && t != "docx" {
 		return nil, fmt.Errorf("type 仅支持 pdf 或 docx")
 	}
-	md := strings.ReplaceAll(in.Markdown, "\r\n", "\n")
 
-	// 1) 解析 Markdown -> 极简 AST
-	doc := parseMarkdown(md)
+	// 1) 预处理 Markdown
+	md := preprocessMarkdown(in.Markdown)
 
-	// 2) 渲染
-	switch t {
-	case "pdf":
-		data, err := renderPDF(doc, l.svcCtx.Config.Font.Path)
-		if err != nil {
-			return nil, fmt.Errorf("渲染 PDF 失败: %w", err)
-		}
-		return &pb.ConvertMarkdownResponse{
-			Filename:    "export.pdf",
-			ContentType: "application/pdf",
-			Data:        data,
-		}, nil
-	case "docx":
-		data, err := renderDOCX(doc)
-		if err != nil {
-			return nil, fmt.Errorf("渲染 DOCX 失败: %w", err)
-		}
-		return &pb.ConvertMarkdownResponse{
-			Filename:    "export.docx",
-			ContentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-			Data:        data,
-		}, nil
-	default:
-		return nil, fmt.Errorf("不支持的 type: %s", t)
+	// 2) 运行 pandoc
+	outName := "export." + t
+	contentType := map[string]string{
+		"pdf":  "application/pdf",
+		"docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+	}[t]
+
+	data, err := runPandoc(l.ctx, md, t, l.svcCtx.Config.Font.Path)
+	if err != nil {
+		return nil, err
 	}
+
+	return &pb.ConvertMarkdownResponse{
+		Filename:    outName,
+		ContentType: contentType,
+		Data:        data,
+	}, nil
 }
 
-/*************** Minimal Markdown AST ***************/
+/*************** 预处理 ***************/
 
-type NodeType int
+// 1) 把字面量的 "\n" 变成真正换行
+// 2) 把 1.2.3. 之类的编号里的 "." 全部转义为 "\."（避开代码块和行内代码）
+func preprocessMarkdown(src string) string {
+	if src == "" {
+		return src
+	}
 
-const (
-	NParagraph NodeType = iota
-	NHeading
-	NList
-	NCodeBlock
-)
+	// 把 CRLF 归一化（可选）
+	s := strings.ReplaceAll(src, "\r\n", "\n")
 
-type Inline struct {
-	Text   string
-	Bold   bool
-	Italic bool
-	Code   bool
+	// 把字面量的 \n（两个字符：反斜杠 + n）转换为真正换行
+	s = strings.ReplaceAll(s, `\n`, "\n")
+
+	// 转义编号里的点；需要跳过 fenced code 与行内 code
+	return escapeNumberDotsOutsideCode(s)
 }
 
-type Block struct {
-	Typ     NodeType
-	Level   int        // heading level 1..6
-	Ordered bool       // for list
-	Items   [][]Inline // list items
-	Lines   []string   // codeblock lines
-	Inlines []Inline   // paragraph / heading
-}
+// 在代码块 (``` ... ```) 与行内代码 (`...`) 外部，把形如 1.2.3. 的片段里的 '.' 全部转义为 '\.'
+// 例： "章节 1.2.3. 概述" -> "章节 1\.2\.3\. 概述"
+func escapeNumberDotsOutsideCode(s string) string {
+	// 状态机：fenced code、inline code、plain
+	var (
+		out      strings.Builder
+		i        int
+		inFence  bool
+		inInline bool
+		lines    = strings.Split(s, "\n")
+	)
 
-type Document struct{ Blocks []Block }
+	for _, line := range lines {
+		ln := line
 
-var (
-	reFence  = regexp.MustCompile("^```")
-	reH      = regexp.MustCompile(`^(#{1,6})\s+(.*)$`)
-	reUItem  = regexp.MustCompile(`^\s*[-*+]\s+(.*)$`)
-	reOItem  = regexp.MustCompile(`^\s*\d+\.\s+(.*)$`)
-	reInline = regexp.MustCompile(`(\*\*[^*]+\*\*|\*[^*]+\*|` + "`" + `[^` + "`" + `]+` + "`" + `)`)
-)
-
-func parseMarkdown(md string) Document {
-	lines := strings.Split(md, "\n")
-	var blocks []Block
-	var i int
-	for i < len(lines) {
-		line := lines[i]
-
-		// fenced code block
-		if reFence.MatchString(line) {
-			i++
-			var code []string
-			for i < len(lines) && !reFence.MatchString(lines[i]) {
-				code = append(code, lines[i])
-				i++
-			}
-			if i < len(lines) && reFence.MatchString(lines[i]) {
-				i++
-			}
-			blocks = append(blocks, Block{Typ: NCodeBlock, Lines: code})
+		// fenced code block 的开始/结束：以 ``` 开头
+		trim := strings.TrimSpace(ln)
+		if strings.HasPrefix(trim, "```") {
+			inFence = !inFence
+			out.WriteString(ln)
+			out.WriteByte('\n')
+			continue
+		}
+		if inFence {
+			// 代码块内不处理
+			out.WriteString(ln)
+			out.WriteByte('\n')
 			continue
 		}
 
-		// heading
-		if m := reH.FindStringSubmatch(line); m != nil {
-			level := len(m[1])
-			inlines := parseInlines(m[2])
-			blocks = append(blocks, Block{Typ: NHeading, Level: level, Inlines: inlines})
-			i++
-			continue
+		// 行内 code：使用一个简单扫描，遇到 ` 切换 inInline 状态
+		var buf strings.Builder
+		for i = 0; i < len(ln); i++ {
+			if ln[i] == '`' {
+				inInline = !inInline
+				buf.WriteByte('`')
+				continue
+			}
+			if inInline {
+				buf.WriteByte(ln[i])
+				continue
+			}
+			// 非代码区域：在这里做 1.2.3. 的点转义
+			buf.WriteByte(ln[i])
 		}
+		processed := escapeNumberDots(buf.String())
+		out.WriteString(processed)
+		out.WriteByte('\n')
+	}
 
-		// list (ordered/unordered)
-		if reUItem.MatchString(line) || reOItem.MatchString(line) {
-			ordered := reOItem.MatchString(line)
-			var items [][]Inline
-			for i < len(lines) {
-				if ordered && reOItem.MatchString(lines[i]) {
-					items = append(items, parseInlines(strings.TrimSpace(splitAfter(lines[i], ". "))))
-					i++
-					continue
-				}
-				if !ordered && reUItem.MatchString(lines[i]) {
-					// 去掉前缀符号
-					li := reUItem.ReplaceAllString(lines[i], "$1")
-					items = append(items, parseInlines(strings.TrimSpace(li)))
-					i++
-					continue
-				}
+	return out.String()
+}
+
+// 把行内的 1.2.3.（一个或多个 . 连接的数字段）整体替换
+// 将其中所有 "." 换成 "\."；例如 10.01.2 -> 10\.01\.2
+// 使用 \b 边界减少误伤，但依然会作用于 IP/版本号等（按你的需求，这样是预期的）
+func escapeNumberDots(line string) string {
+	var out strings.Builder
+	i := 0
+	for i < len(line) {
+		// 收集一段 [0-9.] 串
+		j := i
+		for j < len(line) {
+			c := line[j]
+			if (c >= '0' && c <= '9') || c == '.' {
+				j++
+			} else {
 				break
 			}
-			blocks = append(blocks, Block{Typ: NList, Ordered: ordered, Items: items})
+		}
+		if j == i { // 当前不是数字或点
+			out.WriteByte(line[i])
+			i++
 			continue
 		}
 
-		// paragraph（合并连续非空行）
-		if strings.TrimSpace(line) != "" {
-			var buf []string
-			for i < len(lines) && strings.TrimSpace(lines[i]) != "" {
-				buf = append(buf, strings.TrimSpace(lines[i]))
-				i++
+		token := line[i:j]
+		// 规则：token 内必须包含至少一个 '.'，且不能全是点，且不能包含字母（已保证）
+		if strings.Contains(token, ".") && token != "." {
+			// 只要是纯数字点的组合，我们认为是编号串，全部 '.' 转义
+			token = strings.ReplaceAll(token, ".", `\.`)
+		}
+		out.WriteString(token)
+		i = j
+	}
+	return out.String()
+}
+
+/*************** 调用 Pandoc ***************/
+
+// 通过 pandoc 把 markdown 渲染为指定类型 (pdf/docx)
+func runPandoc(ctx context.Context, markdown, typ, fontDir string) ([]byte, error) {
+	// 1) 落地输入为临时 .md 文件
+	mdFile, err := os.CreateTemp("", "md2-"+time.Now().Format("20060102150405")+"-*.md")
+	if err != nil {
+		return nil, fmt.Errorf("创建临时文件失败: %w", err)
+	}
+	defer os.Remove(mdFile.Name())
+	defer mdFile.Close()
+
+	if _, err := mdFile.WriteString(markdown); err != nil {
+		return nil, fmt.Errorf("写入临时 Markdown 失败: %w", err)
+	}
+	_ = mdFile.Close()
+
+	// 2) 确定输出文件
+	ext := "." + typ
+	outFile := mdFile.Name() + ext
+	defer os.Remove(outFile)
+
+	// 3) 组装 pandoc 参数
+	args := []string{
+		"-f", "markdown",
+		"-o", outFile,
+		"--wrap=preserve",
+		mdFile.Name(),
+	}
+
+	if typ == "pdf" {
+		args = append([]string{"--pdf-engine=xelatex"}, args...)
+
+		// 字体
+		fontArgs := buildPandocFontArgs(fontDir)
+		args = append(args, fontArgs...)
+
+		// 页边距
+		args = append(args, "-V", "geometry:top=20mm,left=20mm,right=20mm,bottom=20mm")
+		// 取消首行缩进（可选）
+		args = append(args, "-V", "indent=0")
+
+		// ✅ 自动换行：调用 microtype 与 CJK 支持包
+		args = append(args, "-V", "linestretch=1.2")
+		args = append(args, "-V", "CJKmainfontoptions=AutoFakeBold,AutoFakeSlant")
+		args = append(args, "-V", "header-includes=\\usepackage[slantfont,boldfont]{xeCJK}\\usepackage{microtype}\\tolerance=1000\\emergencystretch=3em\\sloppy")
+
+		args = append(args, "--pdf-engine-opt=-halt-on-error", "--pdf-engine-opt=-interaction=nonstopmode")
+	}
+
+	// 4) 调用 pandoc
+	// 加一个超时，防止卡死
+	c, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(c, "pandoc", args...)
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("pandoc 执行失败: %v\nstderr: %s", err, stderr.String())
+	}
+
+	// 5) 读回输出
+	data, err := os.ReadFile(outFile)
+	if err != nil {
+		return nil, fmt.Errorf("读取输出文件失败: %w", err)
+	}
+	return data, nil
+}
+
+// 构建 pandoc 字体参数（PDF 用）
+func buildPandocFontArgs(fontDir string) []string {
+	// 统一正斜杠 & 结尾加 "/"
+	normDir := fontDir
+	normDir = strings.ReplaceAll(normDir, "\\", "/")
+	if normDir != "" && !strings.HasSuffix(normDir, "/") {
+		normDir += "/"
+	}
+
+	// 优先尝试 DENG / DENGB 组合
+	if normDir != "" {
+		if _, err1 := os.Stat(normDir + "DENG.TTF"); err1 == nil {
+			args := []string{
+				"-V", "mainfont=DENG",
+				"-V", "mainfontoptions=Path=" + normDir + ",Extension=.TTF",
 			}
-			text := strings.Join(buf, " ")
-			blocks = append(blocks, Block{Typ: NParagraph, Inlines: parseInlines(text)})
-			continue
-		}
-		i++
-	}
-	return Document{Blocks: blocks}
-}
-
-func parseInlines(s string) []Inline {
-	if s == "" {
-		return nil
-	}
-	var out []Inline
-	idxs := reInline.FindAllStringIndex(s, -1)
-	last := 0
-	pushText := func(t string) {
-		if t == "" {
-			return
-		}
-		out = append(out, Inline{Text: t})
-	}
-	for _, idx := range idxs {
-		if idx[0] > last {
-			pushText(s[last:idx[0]])
-		}
-		token := s[idx[0]:idx[1]]
-		switch {
-		case strings.HasPrefix(token, "**"):
-			out = append(out, Inline{Text: token[2 : len(token)-2], Bold: true})
-		case strings.HasPrefix(token, "*"):
-			out = append(out, Inline{Text: token[1 : len(token)-1], Italic: true})
-		case strings.HasPrefix(token, "`"):
-			out = append(out, Inline{Text: token[1 : len(token)-1], Code: true})
-		}
-		last = idx[1]
-	}
-	if last < len(s) {
-		pushText(s[last:])
-	}
-	for i := range out {
-		out[i].Text = strings.ReplaceAll(out[i].Text, "\t", "    ")
-	}
-	return out
-}
-
-func splitAfter(s, sep string) string {
-	i := strings.Index(s, sep)
-	if i < 0 {
-		return s
-	}
-	return s[i+len(sep):]
-}
-
-/*************** PDF renderer ***************/
-
-func renderPDF(doc Document, Path string) ([]byte, error) {
-	pdf := gofpdf.New("P", "mm", "A4", "")
-	// 注册中文字体
-	pdf.AddUTF8Font("simhei", "", Path+"/DENG.TTF")
-	pdf.AddUTF8Font("simhei", "B", Path+"/DENGB.TTF")
-	pdf.SetMargins(20, 20, 20)
-	pdf.AddPage()
-	pdf.SetAutoPageBreak(true, 20)
-
-	lineHeight := 6.0
-	baseParaSize := 12.0
-
-	bulletWidth := 6.0 // 列表前缀占位宽度
-
-	for _, b := range doc.Blocks {
-		switch b.Typ {
-		case NHeading:
-			size := 18.0 - float64(b.Level-1)*2
-			if size < 12 {
-				size = 12
+			if _, err2 := os.Stat(normDir + "DENGB.TTF"); err2 == nil {
+				// 有粗体文件就一起指定
+				args[3] = args[3] + ",BoldFont=DENGB.TTF"
 			}
-			// 标题统一中文字体；用 MultiCell 保证自动换行
-			pdf.SetFont("simhei", "", size)
-			pdf.MultiCell(0, lineHeight+2, joinInlines(b.Inlines), "", "L", false)
-			pdf.Ln(1)
-
-		case NParagraph:
-			// 段落：合并 inline 后一次性 MultiCell，保证换行
-			pdf.SetFont("simhei", "", baseParaSize)
-			pdf.MultiCell(0, lineHeight, joinInlines(b.Inlines), "", "L", false)
-			pdf.Ln(1)
-
-		case NList:
-			pdf.SetFont("simhei", "", baseParaSize)
-			for i, item := range b.Items {
-				// 计算前缀
-				prefix := "• "
-				if b.Ordered {
-					prefix = fmt.Sprintf("%d. ", i+1)
-				}
-
-				// 记录当前坐标
-				x := pdf.GetX()
-				y := pdf.GetY()
-
-				// 先画前缀小格
-				pdf.CellFormat(bulletWidth, lineHeight, prefix, "", 0, "L", false, 0, "")
-
-				// 同行从 prefix 右侧开始写主体，多行自动换行
-				pdf.SetXY(x+bulletWidth, y)
-				pdf.MultiCell(0, lineHeight, joinInlines(item), "", "L", false)
+			return args
+		}
+		// 其次尝试 SIMHEI（常见中文黑体，可能没有独立粗体文件）
+		if _, err := os.Stat(normDir + "SIMHEI.TTF"); err == nil {
+			return []string{
+				"-V", "mainfont=SIMHEI",
+				"-V", "mainfontoptions=Path=" + normDir + ",Extension=.TTF",
 			}
-			pdf.Ln(1)
-
-		case NCodeBlock:
-			// 代码块：同样用中文字体，防止中文字符出问题；用 MultiCell 自动换行
-			pdf.SetFont("simhei", "", 11)
-			for _, ln := range b.Lines {
-				pdf.MultiCell(0, lineHeight, RepairChinese(ln), "", "L", false)
-			}
-			pdf.Ln(1)
 		}
 	}
 
-	var buf bytes.Buffer
-	if err := pdf.Output(&buf); err != nil {
-		return nil, err
+	// 回退：系统字体名（不带路径），避免 LaTeX 解析路径
+	switch runtime.GOOS {
+	case "windows":
+		return []string{"-V", "mainfont=Microsoft YaHei"}
+	case "darwin":
+		return []string{"-V", "mainfont=PingFang SC"}
+	default:
+		return []string{"-V", "mainfont=Noto Sans CJK SC"}
 	}
-	return buf.Bytes(), nil
 }
 
-func joinInlines(in []Inline) string {
-	var sb strings.Builder
-	for _, x := range in {
-		sb.WriteString(RepairChinese(x.Text))
-	}
-	return sb.String()
-}
-
-func RepairChinese(s string) string {
-	if s == "" {
-		return s
-	}
-	// 先尝试：把每个 rune 当 1 字节还原，再按 UTF-8 验证
-	if b, ok := latin1BytesFromRunes(s); ok && utf8.Valid(b) {
-		return string(b)
-	}
-	// 再尝试：还原后按 GB18030 解
-	if b, ok := latin1BytesFromRunes(s); ok {
-		if out, err := simplifiedchinese.GB18030.NewDecoder().Bytes(b); err == nil && utf8.Valid(out) {
-			return string(out)
-		}
-	}
-	// 都不匹配就原样返回
-	return s
-}
-
-func latin1BytesFromRunes(s string) ([]byte, bool) {
-	out := make([]byte, 0, len(s))
-	for _, r := range s {
-		if r > 0xFF { // 正常中文会触发这里 -> 放弃本轮修复
-			return nil, false
-		}
-		out = append(out, byte(r))
-	}
-	return out, true
-}
-
-/*************** DOCX renderer (handcrafted OpenXML) ***************/
-
-type fileMap map[string][]byte
-
-func (fm fileMap) add(name string, data []byte) { fm[name] = data }
-
-func (fm fileMap) zip() ([]byte, error) {
-	var names []string
-	for k := range fm {
-		names = append(names, k)
-	}
-	sort.Strings(names)
-
-	var buf bytes.Buffer
-	zw := zip.NewWriter(&buf)
-	for _, name := range names {
-		w, err := zw.Create(name)
-		if err != nil {
-			return nil, err
-		}
-		if _, err = w.Write(fm[name]); err != nil {
-			return nil, err
-		}
-	}
-	if err := zw.Close(); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
-}
-
-func renderDOCX(doc Document) ([]byte, error) {
-	fm := fileMap{}
-	fm.add("[Content_Types].xml", []byte(contentTypesXML()))
-	fm.add("_rels/.rels", []byte(relsXML()))
-	fm.add("docProps/app.xml", []byte(appXML()))
-	fm.add("docProps/core.xml", []byte(coreXML()))
-	fm.add("word/document.xml", []byte(buildWordDocumentXML(doc)))
-	fm.add("word/_rels/document.xml.rels", []byte(docRelsXML()))
-	return fm.zip()
-}
-
-const xmlHeader = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>`
-
-func buildWordDocumentXML(doc Document) string {
-	var b strings.Builder
-	// 使用最小命名空间集合：w + r
-	b.WriteString(xmlHeader + `<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>`)
-
-	for _, bl := range doc.Blocks {
-		switch bl.Typ {
-		case NHeading:
-			size := 32 - (bl.Level-1)*3 // half-points
-			if size < 18 {
-				size = 18
-			}
-			b.WriteString(paragraphXML(bl.Inlines, size, true))
-		case NParagraph:
-			b.WriteString(paragraphXML(bl.Inlines, 24, false)) // 12pt
-		case NList:
-			for i, it := range bl.Items {
-				prefix := "• "
-				if bl.Ordered {
-					prefix = strconv.Itoa(i+1) + ". "
-				}
-				li := append([]Inline{{Text: prefix, Bold: true}}, it...)
-				b.WriteString(paragraphXML(li, 24, false))
-			}
-		case NCodeBlock:
-			var in []Inline
-			for _, ln := range bl.Lines {
-				in = append(in, Inline{Text: ln})
-				in = append(in, Inline{Text: "\n"})
-			}
-			b.WriteString(paragraphXMLCode(in))
-		}
-	}
-
-	// 页面设置（A4, 边距 2.54cm）
-	b.WriteString(`<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr>`)
-	b.WriteString(`</w:body></w:document>`)
-	return b.String()
-}
-
-func paragraphXML(in []Inline, size int, heading bool) string {
-	var sb strings.Builder
-	sb.WriteString(`<w:p><w:rPr>`)
-	if heading {
-		sb.WriteString(`<w:b/>`)
-	}
-	sb.WriteString(`</w:rPr>`)
-	for _, r := range in {
-		sb.WriteString(`<w:r><w:rPr>`)
-		if r.Bold {
-			sb.WriteString(`<w:b/>`)
-		}
-		if r.Italic {
-			sb.WriteString(`<w:i/>`)
-		}
-		if r.Code {
-			sb.WriteString(`<w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/>`)
-		}
-		sb.WriteString(`<w:sz w:val="` + strconv.Itoa(size) + `"/></w:rPr><w:t xml:space="preserve">` + xmlEscape(r.Text) + `</w:t></w:r>`)
-	}
-	sb.WriteString(`</w:p>`)
-	return sb.String()
-}
-
-func paragraphXMLCode(in []Inline) string {
-	var sb strings.Builder
-	sb.WriteString(`<w:p><w:r><w:rPr><w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/><w:sz w:val="22"/></w:rPr><w:t xml:space="preserve">`)
-	sb.WriteString(xmlEscape(joinInlines(in)))
-	sb.WriteString(`</w:t></w:r></w:p>`)
-	return sb.String()
-}
-
+/***************（保留以兼容 docx core 里可能用到的）***************/
 func xmlEscape(s string) string { return html.EscapeString(s) }
-
-func contentTypesXML() string {
-	return xmlHeader + `
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-  <Default Extension="xml" ContentType="application/xml"/>
-  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
-  <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
-  <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
-</Types>`
-}
-
-func relsXML() string {
-	return xmlHeader + `
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
-</Relationships>`
-}
-
-func docRelsXML() string {
-	return xmlHeader + `
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-</Relationships>`
-}
-
-func appXML() string {
-	return xmlHeader + `
-<Properties xmlns="http://schemas.openxmlformats.org/office/2006/extended-properties"
- xmlns:vt="http://schemas.openxmlformats.org/office/2006/docPropsVTypes">
-  <Application>go-zero md2docx</Application>
-</Properties>`
-}
-
-func coreXML() string {
-	now := time.Now().UTC().Format(time.RFC3339)
-	return xmlHeader + `
-<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties"
- xmlns:dc="http://purl.org/dc/elements/1.1/"
- xmlns:dcterms="http://purl.org/dc/terms/"
- xmlns:dcmitype="http://purl.org/dc/dcmitype/"
- xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <dc:title>export</dc:title>
-  <dc:creator>md-converter</dc:creator>
-  <cp:lastModifiedBy>md-converter</cp:lastModifiedBy>
-  <dcterms:created xsi:type="dcterms:W3CDTF">` + now + `</dcterms:created>
-  <dcterms:modified xsi:type="dcterms:W3CDTF">` + now + `</dcterms:modified>
-</cp:coreProperties>`
-}

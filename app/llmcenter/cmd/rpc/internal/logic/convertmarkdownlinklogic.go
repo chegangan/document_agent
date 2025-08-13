@@ -38,27 +38,18 @@ func (l *ConvertMarkdownLinkLogic) ConvertMarkdownLink(in *pb.ConvertMarkdownLin
 	if t != "pdf" && t != "docx" {
 		return nil, fmt.Errorf("type 仅支持 pdf 或 docx")
 	}
-	md := strings.ReplaceAll(in.Markdown, "\r\n", "\n")
-	doc := parseMarkdown(md)
 
-	var (
-		data        []byte
-		contentType string
-		filename    string
-		err         error
-	)
-	if t == "pdf" {
-		data, err = renderPDF(doc, l.svcCtx.Config.Font.Path)
-		contentType, filename = "application/pdf", "export.pdf"
-	} else {
-		data, err = renderDOCX(doc)
-		contentType, filename = "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "export.docx"
-	}
+	// 1) 统一换行 + 预处理（\\n -> \n；转义 1.2.3. -> 1\.2\.3\.，且避开代码块/行内代码）
+	md := strings.ReplaceAll(in.Markdown, "\r\n", "\n")
+	md = preprocessMarkdown(md)
+
+	// 2) 通过 Pandoc 生成目标格式
+	data, err := runPandoc(l.ctx, md, t, l.svcCtx.Config.Font.Path)
 	if err != nil {
 		return nil, fmt.Errorf("渲染失败: %w", err)
 	}
 
-	// ✅ 落盘到 data/static 根目录
+	// 3) 落盘到配置的上传目录
 	absDir := l.svcCtx.Config.Upload.BaseDir
 	if err := os.MkdirAll(absDir, 0o755); err != nil {
 		return nil, fmt.Errorf("创建目录失败: %w", err)
@@ -70,7 +61,7 @@ func (l *ConvertMarkdownLinkLogic) ConvertMarkdownLink(in *pb.ConvertMarkdownLin
 		return nil, fmt.Errorf("写文件失败: %w", err)
 	}
 
-	// ✅ 生成签名直链（免 Header）
+	// 4) 生成签名直链
 	expire := l.svcCtx.Config.Download.ExpireSeconds
 	if expire <= 0 {
 		expire = 600
@@ -83,10 +74,16 @@ func (l *ConvertMarkdownLinkLogic) ConvertMarkdownLink(in *pb.ConvertMarkdownLin
 	downloadURL := fmt.Sprintf("%s?path=%s&exp=%d&sig=%s",
 		base, url.QueryEscape(name), exp, sig)
 
+	filename := map[string]string{"pdf": "export.pdf", "docx": "export.docx"}[t]
+	contentType := map[string]string{
+		"pdf":  "application/pdf",
+		"docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+	}[t]
+
 	return &pb.ConvertMarkdownLinkResponse{
 		Filename:    filename,
 		ContentType: contentType,
-		Path:        name,        // 相对 data/static 的文件名
+		Path:        name,        // 相对 BaseDir 的文件名
 		Url:         downloadURL, // 免 Header 直链
 	}, nil
 }
