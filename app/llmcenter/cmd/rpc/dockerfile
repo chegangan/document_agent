@@ -1,6 +1,6 @@
 # ---- Builder Stage ----
 # 使用官方的 Go Alpine 镜像作为构建环境
-FROM golang:1.23-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 # 设置工作目录
 WORKDIR /app
@@ -32,6 +32,8 @@ WORKDIR /app
 
 # 从 builder 阶段复制编译好的二进制文件
 COPY --from=builder /app/llmcenter-rpc .
+
+COPY app/llmcenter/cmd/data/static /data/static
 
 # 暴露 RPC 服务端口
 EXPOSE 8011

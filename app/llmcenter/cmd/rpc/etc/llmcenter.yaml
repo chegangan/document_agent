@@ -1,6 +1,6 @@
 Name: llmcenter.rpc
 ListenOn: 0.0.0.0:8011
-Mode: dev
+Mode: pro
 
 Timeout:  180000 # 毫秒, 180000ms = 3 分钟
 
@@ -12,30 +12,30 @@ Log:
   
 Etcd:
   Hosts:
-    - localhost:2379
+    - etcd:2379
   Key: llmcenter.rpc
 
 DB:
-  DataSource: llmcenter:G7v@pL2#xQ9!sT8z@tcp(localhost:3306)/document_agent_llmcenter?charset=utf8mb4&parseTime=true&loc=Asia%2FShanghai
+  DataSource: llmcenter:G7v@pL2#xQ9!sT8z@tcp(mysql:3306)/document_agent_llmcenter?charset=utf8mb4&parseTime=true&loc=Asia%2FShanghai
 
 XingChen:
   FlowID: "7361277433865613314"
   ApiURL: "https://xingchen-api.xf-yun.com/workflow/v1/chat/completions"
   ApiResumeURL: "https://xingchen-api.xf-yun.com/workflow/v1/resume"
-  ApiSecret: "OGQxNzAyZWY1NWVjZGMzNjZkZDY3Y2Fk"
-  ApiKey: "c8c7d2e37e622fd9dcd0f343c2a3ac1f"
+  ApiSecret: "MmVmZmY4YjhhMmQzMWUxMTllNTFiZjhj"
+  ApiKey: "a08967af6fefaf656356d138b67947cf"
   UploadURL: "https://xingchen-api.xf-yun.com/workflow/v1/upload_file"
   FlagCode: "1433"
 
 Redis:
-  Host: localhost:6379
+  Host: redis:6379
   Type: node  # 单节点模式用 node，集群模式用 cluster
   Pass: ""    # 如果你的 Redis 有密码，在这里填写
   Tls: false
   Key: llmcenter:redis
   
 Upload:
-  BaseDir: D:/vsproject/document_agent/data/static
+  BaseDir: data/static
 
 LlmApiClient:
   Timeout: 200  # s
