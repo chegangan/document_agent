@@ -38,7 +38,7 @@ COPY --from=builder /app/llmcenter-api .
 COPY app/llmcenter/cmd/data/static /data/static
 
 # 暴露 API 服务端口
-EXPOSE 8010
+EXPOSE 8002
 
 # 容器启动命令
 CMD ["./llmcenter-api", "-f", "etc/llmcenter.yaml"]

@@ -9,7 +9,7 @@ Log:
 # etcd 配置
 Etcd:
   Hosts:
-    - etcd:2379
+    - localhost:2379
   Key: usercenter.rpc
   
 #jwtAuth
@@ -18,4 +18,4 @@ JwtAuth:
   AccessExpire: 31536000
 
 DB:
-  DataSource: usercenter:vG7#pL9@xQ2!sT5z@tcp(mysql:3306)/document_agent_usercenter?charset=utf8mb4&parseTime=true&loc=Asia%2FShanghai
+  DataSource: usercenter:vG7#pL9@xQ2!sT5z@tcp(localhost:3306)/document_agent_usercenter?charset=utf8mb4&parseTime=true&loc=Asia%2FShanghai

@@ -3,6 +3,7 @@ version: '3.8'
 networks:
   document_agent_net:
     driver: bridge
+    name: document_agent_net
 
 # --- 在顶层定义默认的日志配置 ---
 x-logging: &default-logging
@@ -61,7 +62,7 @@ services:
       dockerfile: app/llmcenter/cmd/api/Dockerfile
     container_name: llmcenter-api
     ports:
-      - "8010:8010"
+      - "8002:8002"
     networks:
       - document_agent_net
     depends_on:

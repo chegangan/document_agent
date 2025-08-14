@@ -36,7 +36,7 @@ COPY --from=builder /app/llmcenter-rpc .
 COPY app/llmcenter/cmd/data/static /data/static
 
 # 暴露 RPC 服务端口
-EXPOSE 8011
+EXPOSE 8003
 
 # 容器启动命令
 CMD ["./llmcenter-rpc", "-f", "etc/llmcenter.yaml"]
