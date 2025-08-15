@@ -32,17 +32,41 @@ func (l *ConvertMarkdownLogic) ConvertMarkdown(in *pb.ConvertMarkdownRequest) (*
 		return nil, fmt.Errorf("type 仅支持 pdf 或 docx")
 	}
 
-	// 1) 预处理 Markdown
+	// 1) 预处理 Markdown// 1) 预处理
 	md := preprocessMarkdown(in.Markdown)
 
-	// 2) 运行 pandoc
+	// 2) 应用“首行居中、末两行右对齐”
+	md = applyLineAlignments(md)
+
+	title, docNo := pickTitleDocNo(in.GetInformation())
+
+	if title == "" {
+		title = "某某县人民政府文件" // 默认值
+	}
+	if docNo == "" {
+		docNo = "某政【2025】1号" // 默认值
+	}
+
+	md = decorateGovHeaderAndBody(md, t, title, docNo)
+
+	// 3) 运行 pandoc
 	outName := "export." + t
 	contentType := map[string]string{
 		"pdf":  "application/pdf",
 		"docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 	}[t]
 
-	data, err := runPandoc(l.ctx, md, t, l.svcCtx.Config.Font.Path)
+	data, err := runPandoc(
+		l.ctx,
+		md,
+		t,
+		l.svcCtx.Config.Font.Path,
+		l.svcCtx.Config.LuaFilters.Align,
+		l.svcCtx.Config.LuaFilters.Gov,
+		title, // ✅ 传入
+		docNo, // ✅ 传入
+	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -52,6 +76,31 @@ func (l *ConvertMarkdownLogic) ConvertMarkdown(in *pb.ConvertMarkdownRequest) (*
 		ContentType: contentType,
 		Data:        data,
 	}, nil
+}
+
+// 根据输出类型，拼接“红字抬头 + 文号 + 红线”，并把正文首/末行对齐
+func decorateGovHeaderAndBody(src, typ, title, docNo string) string {
+	header := ""
+	switch typ {
+	case "pdf":
+		// 不在 Markdown 里塞 LaTeX 抬头！交给 runPandoc 用 include-before-body 注入
+		header = "" // 保持为空
+	case "docx":
+		header = fmt.Sprintf(`
+::: {.GovTitle}
+%s
+:::
+
+::: {.GovDocNo}
+%s
+:::
+
+::: {.GovRedLine}
+ 
+:::
+`, html.EscapeString(title), html.EscapeString(docNo))
+	}
+	return header + "\n" + src
 }
 
 /*************** 预处理 ***************/
@@ -164,67 +213,80 @@ func escapeNumberDots(line string) string {
 /*************** 调用 Pandoc ***************/
 
 // 通过 pandoc 把 markdown 渲染为指定类型 (pdf/docx)
-func runPandoc(ctx context.Context, markdown, typ, fontDir string) ([]byte, error) {
-	// 1) 落地输入为临时 .md 文件
+func runPandoc(ctx context.Context, markdown, typ, fontDir, alignLua, govLua string, pdfTitle, pdfDocNo string) ([]byte, error) {
 	mdFile, err := os.CreateTemp("", "md2-"+time.Now().Format("20060102150405")+"-*.md")
 	if err != nil {
 		return nil, fmt.Errorf("创建临时文件失败: %w", err)
 	}
 	defer os.Remove(mdFile.Name())
 	defer mdFile.Close()
-
 	if _, err := mdFile.WriteString(markdown); err != nil {
 		return nil, fmt.Errorf("写入临时 Markdown 失败: %w", err)
 	}
 	_ = mdFile.Close()
 
-	// 2) 确定输出文件
-	ext := "." + typ
-	outFile := mdFile.Name() + ext
+	outFile := mdFile.Name() + "." + typ
 	defer os.Remove(outFile)
 
-	// 3) 组装 pandoc 参数
+	fromFmt := "markdown+fenced_divs"
+	if typ == "docx" {
+		fromFmt = "markdown+fenced_divs"
+	} else if typ == "pdf" {
+		fromFmt = "markdown+fenced_divs" // 这里不用 raw_tex 了，抬头走 include-before-body 更稳
+	}
+
 	args := []string{
-		"-f", "markdown",
+		"-f", fromFmt,
 		"-o", outFile,
 		"--wrap=preserve",
-		mdFile.Name(),
 	}
 
+	// 如果是 PDF，注入一个真正的 LaTeX 头（红字抬头 + 文号 + 红线）
+	var incFile string
 	if typ == "pdf" {
 		args = append([]string{"--pdf-engine=xelatex"}, args...)
-
-		// 字体
 		fontArgs := buildPandocFontArgs(fontDir)
 		args = append(args, fontArgs...)
-
-		// 页边距
 		args = append(args, "-V", "geometry:top=20mm,left=20mm,right=20mm,bottom=20mm")
-		// 取消首行缩进（可选）
 		args = append(args, "-V", "indent=0")
-
-		// ✅ 自动换行：调用 microtype 与 CJK 支持包
 		args = append(args, "-V", "linestretch=1.2")
 		args = append(args, "-V", "CJKmainfontoptions=AutoFakeBold,AutoFakeSlant")
-		args = append(args, "-V", "header-includes=\\usepackage[slantfont,boldfont]{xeCJK}\\usepackage{microtype}\\tolerance=1000\\emergencystretch=3em\\sloppy")
-
+		args = append(args, "-V",
+			`header-includes=\usepackage[slantfont,boldfont]{xeCJK}\usepackage{microtype}\usepackage{xcolor}\tolerance=1000\emergencystretch=3em\sloppy`)
 		args = append(args, "--pdf-engine-opt=-halt-on-error", "--pdf-engine-opt=-interaction=nonstopmode")
+
+		// 这里写 include-before-body 内容（注意花括号作用域，\centering 不外溢）
+		tex := buildPdfHeaderTex(pdfTitle, pdfDocNo)
+
+		f, e := os.CreateTemp("", "inc-*.tex")
+		if e != nil {
+			return nil, fmt.Errorf("创建临时 tex 失败: %w", e)
+		}
+		incFile = f.Name()
+		if _, e := f.WriteString(tex); e != nil {
+			f.Close()
+			return nil, fmt.Errorf("写入临时 tex 失败: %w", e)
+		}
+		f.Close()
+		defer os.Remove(incFile)
+
+		args = append(args, "--include-before-body="+incFile)
+		args = append(args, "--lua-filter="+alignLua)
+	} else if typ == "docx" {
+		args = append(args, "--lua-filter="+alignLua)
+		args = append(args, "--lua-filter="+govLua)
 	}
 
-	// 4) 调用 pandoc
-	// 加一个超时，防止卡死
+	args = append(args, mdFile.Name())
+
 	c, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
-
 	cmd := exec.CommandContext(c, "pandoc", args...)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
-
 	if err := cmd.Run(); err != nil {
 		return nil, fmt.Errorf("pandoc 执行失败: %v\nstderr: %s", err, stderr.String())
 	}
-
-	// 5) 读回输出
 	data, err := os.ReadFile(outFile)
 	if err != nil {
 		return nil, fmt.Errorf("读取输出文件失败: %w", err)
@@ -272,6 +334,92 @@ func buildPandocFontArgs(fontDir string) []string {
 	default:
 		return []string{"-V", "mainfont=Noto Sans CJK SC"}
 	}
+}
+
+func applyLineAlignments(src string) string {
+	if src == "" {
+		return src
+	}
+	lines := strings.Split(src, "\n")
+
+	// 找出所有非空行的下标
+	nonEmpty := make([]int, 0, len(lines))
+	for i, ln := range lines {
+		if strings.TrimSpace(ln) != "" {
+			nonEmpty = append(nonEmpty, i)
+		}
+	}
+	if len(nonEmpty) == 0 {
+		return src
+	}
+
+	// 第一行 -> 居中
+	first := nonEmpty[0]
+	lines[first] = wrapAlignDiv(lines[first], "center")
+
+	// 最后两行 -> 右对齐
+	if len(nonEmpty) >= 2 {
+		last := nonEmpty[len(nonEmpty)-1]
+		lines[last] = wrapAlignDiv(lines[last], "right")
+	}
+	if len(nonEmpty) >= 3 {
+		secondLast := nonEmpty[len(nonEmpty)-2]
+		lines[secondLast] = wrapAlignDiv(lines[secondLast], "right")
+	}
+
+	return strings.Join(lines, "\n")
+}
+
+func wrapAlignDiv(line, align string) string {
+	// 已经是 fenced div 且含 align 就不重复包裹
+	trimmed := strings.TrimSpace(line)
+	low := strings.ToLower(trimmed)
+	if strings.HasPrefix(low, ":::") && strings.Contains(low, "align=") {
+		return line
+	}
+	// Pandoc 原生 fenced div，docx writer 能正确识别 {align=...}
+	// 形如：
+	// ::: {align=center}
+	// 第一行文本
+	// :::
+	return fmt.Sprintf("::: {align=%s}\n%s\n:::", align, line)
+}
+
+// 从 repeated InfoItem 中提取 Title / DocNo（大小写不敏感），空白会被 Trim
+func pickTitleDocNo(items []*pb.InfoItem) (title, docNo string) {
+	for _, it := range items {
+		t := strings.ToLower(strings.TrimSpace(it.GetType()))
+		v := strings.TrimSpace(it.GetContant())
+		if v == "" {
+			continue
+		}
+		switch t {
+		case "title":
+			title = v
+		case "docno":
+			docNo = v
+		}
+	}
+	return
+}
+
+// 新增：根据 title/docNo 生成 tex 头
+func buildPdfHeaderTex(title, docNo string) string {
+	esc := func(s string) string {
+		// 极简 LaTeX 转义（足够覆盖常见中文标题中的特殊字符）
+		replacer := strings.NewReplacer(
+			`%`, `\%`, `$`, `\$`, `#`, `\#`, `&`, `\&`,
+			`_`, `\_`, `{`, `\{`, `}`, `\}`, `^`, `\^{}`, `~`, `\~{}`,
+		)
+		return replacer.Replace(s)
+	}
+	return fmt.Sprintf(
+		`{\centering {\fontsize{36pt}{42pt}\selectfont\textcolor{red}{%s}}\par}
+\vspace{4pt}
+{\centering {\large %s}\par}
+{\color{red}\rule{\linewidth}{1.2pt}}
+\vspace{8pt}
+`, esc(title), esc(docNo))
 }
 
 /***************（保留以兼容 docx core 里可能用到的）***************/

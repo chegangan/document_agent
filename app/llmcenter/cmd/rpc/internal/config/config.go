@@ -31,6 +31,10 @@ type Config struct {
 	Font struct {
 		Path string
 	}
+	LuaFilters struct {
+		Align string
+		Gov   string
+	}
 	Download struct {
 		BaseURL       string // 文件下载的基础 URL
 		SignKey       string // 用于签名的密钥

@@ -44,7 +44,7 @@ func (l *ChatCompletionsLogic) ChatCompletions(in *pb.ChatCompletionsRequest, st
 	}
 
 	// 2. 构造最终的 prompt
-	basePrompt := fmt.Sprintf("%s请写一篇%s，基本信息：%s，特殊要求：%s", l.svcCtx.Config.XingChen.FlagCode, in.Documenttype, in.Information, in.Requests)
+	basePrompt := fmt.Sprintf("%s请写一篇%s，基本信息：%s", l.svcCtx.Config.XingChen.FlagCode, in.Documenttype, in.Information)
 
 	// 3. 处理文件引用，并增强 prompt（传入 basePrompt）
 	finalPrompt, imgURL, err := l.processReferences(basePrompt, in.References)
@@ -92,52 +92,81 @@ func (l *ChatCompletionsLogic) processReferences(prompt string, references []*pb
 	xingchenClient := llm.NewXingChenClient(l.ctx, l.svcCtx)
 
 	for _, ref := range references {
-		if ref.Type != "file" {
-			continue
-		}
+		if ref.Type == "file" {
+			localPath := filepath.Join(l.svcCtx.Config.Upload.BaseDir, ref.FileId)
+			ext := strings.ToLower(filepath.Ext(ref.FileId))
 
-		localPath := filepath.Join(l.svcCtx.Config.Upload.BaseDir, ref.FileId)
-		ext := strings.ToLower(filepath.Ext(ref.FileId))
+			if reImg.MatchString(ref.FileId) {
+				url, err := xingchenClient.UploadImage(localPath)
+				if err != nil {
+					l.Errorf("图片上传失败：file_id=%s err=%v", ref.FileId, err)
+					continue
+				}
+				imgURL = url // 目前只支持一张图片
+			} else if reDoc.MatchString(ref.FileId) {
+				var content string
+				var err error
+				switch ext {
+				case ".txt", ".md", ".csv":
+					content, err = fileprocessor.ReadTextFile(localPath)
+				case ".docx":
+					content, err = fileprocessor.ReadDocxFile(localPath)
+				case ".pdf":
+					content, err = fileprocessor.ReadPdfFile(localPath)
+				case ".xlsx":
+					content, err = fileprocessor.ReadXlsxFile(localPath)
+				case ".pptx":
+					content, err = fileprocessor.ReadPptxFile(localPath)
+				}
 
-		if reImg.MatchString(ref.FileId) {
-			url, err := xingchenClient.UploadImage(localPath)
-			if err != nil {
-				l.Errorf("图片上传失败：file_id=%s err=%v", ref.FileId, err)
-				continue
-			}
-			imgURL = url // 目前只支持一张图片
-		} else if reDoc.MatchString(ref.FileId) {
-			var content string
-			var err error
-			switch ext {
-			case ".txt", ".md", ".csv":
-				content, err = fileprocessor.ReadTextFile(localPath)
-			case ".docx":
-				content, err = fileprocessor.ReadDocxFile(localPath)
-			case ".pdf":
-				content, err = fileprocessor.ReadPdfFile(localPath)
-			case ".xlsx":
-				content, err = fileprocessor.ReadXlsxFile(localPath)
-			case ".pptx":
-				content, err = fileprocessor.ReadPptxFile(localPath)
-			}
+				if err != nil {
+					l.Errorf("读取文件失败：file_id=%s err=%v", ref.FileId, err)
+					continue
+				}
 
-			if err != nil {
-				l.Errorf("读取文件失败：file_id=%s err=%v", ref.FileId, err)
-				continue
+				if len(content) > 5000 {
+					content = content[:5000] + "...(已截断)"
+				}
+				fileContents = append(fileContents, fmt.Sprintf("一份%s文件内容如下：\n%s", ext, content))
 			}
+		} /*else if ref.Type == "formworkfile" {
+			localPath := filepath.Join(l.svcCtx.Config.Upload.BaseDir, ref.FileId)
+			ext := strings.ToLower(filepath.Ext(ref.FileId))
+			if reDoc.MatchString(ref.FileId) {
+				var content string
+				var err error
+				switch ext {
+				case ".txt", ".md", ".csv":
+					content, err = fileprocessor.ReadTextFile(localPath)
+				case ".docx":
+					content, err = fileprocessor.ReadDocxFile(localPath)
+				case ".pdf":
+					content, err = fileprocessor.ReadPdfFile(localPath)
+				case ".xlsx":
+					content, err = fileprocessor.ReadXlsxFile(localPath)
+				case ".pptx":
+					content, err = fileprocessor.ReadPptxFile(localPath)
+				}
 
-			if len(content) > 5000 {
-				content = content[:5000] + "...(已截断)"
+				if err != nil {
+					l.Errorf("读取文件失败：file_id=%s err=%v", ref.FileId, err)
+					continue
+				}
+
+				if len(content) > 5000 {
+					content = content[:5000] + "...(已截断)"
+				}
+				formworkfilefileContents = append(formworkfilefileContents, fmt.Sprintf("一份%s模板文件内容如下：\n%s", ext, content))
 			}
-			fileContents = append(fileContents, fmt.Sprintf("一份%s文件内容如下：\n%s", ext, content))
-		}
+		}*/
 	}
 
 	if len(fileContents) > 0 {
 		prompt += "\n\n用户提供了以下文件内容作为参考：\n" + strings.Join(fileContents, "\n\n")
 	}
-
+	//if len(formworkfilefileContents) > 0 {
+	//	prompt += "\n\n模板文件：\n" + strings.Join(formworkfilefileContents, "\n\n")
+	//}
 	return prompt, imgURL, nil
 }
 

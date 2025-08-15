@@ -50,8 +50,9 @@ type Document struct {
 }
 
 type DownloadFileRequest struct {
-	Prompt string `json:"prompt"`
-	Type   string `json:"type"` // "pdf" | "docx"
+	Prompt      string     `json:"prompt"`
+	Type        string     `json:"type"` // "pdf" | "docx"
+	Information []InfoItem `json:"information,optional"`
 }
 
 type EditDocumentRequest struct {
@@ -129,6 +130,11 @@ type HistoryData struct {
 	Requests     string          `json:"requests"`     // 特殊要求
 	CreatedAt    string          `json:"created_at"`   // 创建时间
 	References   []FileReference `json:"references"`   // 文件引用
+}
+
+type InfoItem struct {
+	Type    string `json:"type"`    // 注意字段名首字母大写
+	Contant string `json:"contant"` // 保持和前端一致的拼写
 }
 
 type Message struct {

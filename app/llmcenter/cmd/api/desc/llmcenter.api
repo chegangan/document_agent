@@ -173,9 +173,15 @@ type UpdateDocumentResponse {
 	success bool `json:"success"`
 }
 
+type InfoItem {
+	Type    string `json:"type"` // 注意字段名首字母大写
+	Contant string `json:"contant"` // 保持和前端一致的拼写
+}
+
 type DownloadFileRequest {
-	Prompt string `json:"prompt"`
-	Type   string `json:"type"` // "pdf" | "docx"
+	Prompt      string     `json:"prompt"`
+	Type        string     `json:"type"` // "pdf" | "docx"
+	Information []InfoItem `json:"information,optional"`
 }
 
 type ConvertMarkdownLinkRequest {

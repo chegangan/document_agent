@@ -1,50 +1,50 @@
-Name: llmcenter
-Host: 0.0.0.0
-Port: 8010
-Mode: dev
-Timeout: 300000 # 毫秒, 300000ms = 5 分钟
+  Name: llmcenter
+  Host: 0.0.0.0
+  Port: 8010
+  Mode: dev
+  Timeout: 300000 # 毫秒, 300000ms = 5 分钟
 
-MaxBytes: 8388608  # 传输文件限制8MB
+  MaxBytes: 8388608  # 传输文件限制8MB
 
-Log:
-  ServiceName: llmcenter-api
-  Level: error
-  Mode: console
-  SlowThreshold: 30000
+  Log:
+    ServiceName: llmcenter-api
+    Level: error
+    Mode: console
+    SlowThreshold: 30000
 
-#jwtAuth
-Auth:
-  AccessSecret: I8qLdnSA6N66rdYzBkZE5KjjK1M2keM9EzxVL97533g=
-  accessExpire: 3600
+  #jwtAuth
+  Auth:
+    AccessSecret: I8qLdnSA6N66rdYzBkZE5KjjK1M2keM9EzxVL97533g=
+    accessExpire: 3600
 
-Etcd:
-  Hosts:
-    - etcd:2379
-  Key: llmcenter.api
-
-# rpc 配置
-LlmCenterRpcConf:
   Etcd:
     Hosts:
-      - localhost:2379
-    Key: llmcenter.rpc
-  NonBlock: true
-  Timeout: 180000 # 毫秒, 180000ms = 3 分钟
+      - etcd:2379
+    Key: llmcenter.api
 
-DB:
-  DataSource: llmcenter:G7v@pL2#xQ9!sT8z@tcp(localhost:3306)/document_agent_llmcenter?charset=utf8mb4&parseTime=true&loc=Asia%2FShanghai
+  # rpc 配置
+  LlmCenterRpcConf:
+    Etcd:
+      Hosts:
+        - localhost:2379
+      Key: llmcenter.rpc
+    NonBlock: true
+    Timeout: 180000 # 毫秒, 180000ms = 3 分钟
 
-Upload:
-  BaseDir: D:/vsproject/document_agent/data/static
+  DB:
+    DataSource: llmcenter:G7v@pL2#xQ9!sT8z@tcp(localhost:3306)/document_agent_llmcenter?charset=utf8mb4&parseTime=true&loc=Asia%2FShanghai
 
-FileCleaner:
-  Enable: true
-  Dir: "D:/vsproject/document_agent/data/static"      # 要清理的目录
-  RetentionDays: 1                                    # 保留天数，早于此的删
-  IntervalMinutes: 60                                 # 多久执行一次
-  MaxSizeMB: 0                                        # 0 不限制，>0 则超过大小也删
-  UseEtcdLock: true                                   # 是否走 etcd 分布式锁
-  LockKey: "/locks/filecleaner"
+  Upload:
+    BaseDir: D:/vsproject/document_agent/data/static
 
-PublicDownload:
-  SignKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3ODQ1MzYzMTAsImlhdCI6MTc1MzAwMDMxMCwiand0VXNlcklkIjoyfQ.WFOrZn8VS6JozEf72ihiLUSGms9awjKtVeMwAdl6SjM"  # 和 RPC 一致
+  FileCleaner:
+    Enable: true
+    Dir: "D:/vsproject/document_agent/data/static"      # 要清理的目录
+    RetentionDays: 1                                    # 保留天数，早于此的删
+    IntervalMinutes: 60                                 # 多久执行一次
+    MaxSizeMB: 0                                        # 0 不限制，>0 则超过大小也删
+    UseEtcdLock: true                                   # 是否走 etcd 分布式锁
+    LockKey: "/locks/filecleaner"
+
+  PublicDownload:
+    SignKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3ODQ1MzYzMTAsImlhdCI6MTc1MzAwMDMxMCwiand0VXNlcklkIjoyfQ.WFOrZn8VS6JozEf72ihiLUSGms9awjKtVeMwAdl6SjM"  # 和 RPC 一致
