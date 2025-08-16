@@ -1,10 +1,12 @@
 package logic
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -44,7 +46,7 @@ func (l *ChatCompletionsLogic) ChatCompletions(in *pb.ChatCompletionsRequest, st
 	}
 
 	// 2. 构造最终的 prompt
-	basePrompt := fmt.Sprintf("%s请写一篇%s，基本信息：%s", l.svcCtx.Config.XingChen.FlagCode, in.Documenttype, in.Information)
+	basePrompt := fmt.Sprintf("%s请写一篇%s，基本信息：%s", l.svcCtx.Config.XingChen.FlagCode1, in.Documenttype, in.Information)
 
 	// 3. 处理文件引用，并增强 prompt（传入 basePrompt）
 	finalPrompt, imgURL, err := l.processReferences(basePrompt, in.References)
@@ -89,7 +91,6 @@ func (l *ChatCompletionsLogic) processReferences(prompt string, references []*pb
 	var fileContents []string
 	reImg := regexp.MustCompile(`(?i)\.(jpg|jpeg|png)$`)
 	reDoc := regexp.MustCompile(`(?i)\.(txt|md|csv|docx|pdf|xlsx|pptx)$`)
-	xingchenClient := llm.NewXingChenClient(l.ctx, l.svcCtx)
 
 	for _, ref := range references {
 		if ref.Type == "file" {
@@ -97,12 +98,22 @@ func (l *ChatCompletionsLogic) processReferences(prompt string, references []*pb
 			ext := strings.ToLower(filepath.Ext(ref.FileId))
 
 			if reImg.MatchString(ref.FileId) {
-				url, err := xingchenClient.UploadImage(localPath)
+				// —— 新逻辑：本地 OCR —— //
+				text, err := l.ocrImage(localPath, "chi_sim+eng")
 				if err != nil {
-					l.Errorf("图片上传失败：file_id=%s err=%v", ref.FileId, err)
+					l.Errorf("图片OCR失败：file_id=%s err=%v", ref.FileId, err)
 					continue
 				}
-				imgURL = url // 目前只支持一张图片
+				if text == "" {
+					// 空文本就跳过，不污染提示词
+					continue
+				}
+				// 控制长度，避免提示词过长
+				if len([]rune(text)) > 3000 {
+					runes := []rune(text)
+					text = string(runes[:3000]) + "...(OCR内容已截断)"
+				}
+				fileContents = append(fileContents, fmt.Sprintf("一张图片（%s）识别到的文字：\n%s", ext, text))
 			} else if reDoc.MatchString(ref.FileId) {
 				var content string
 				var err error
@@ -289,4 +300,28 @@ func (l *ChatCompletionsLogic) generateTitle(prompt string) string {
 		return string(runes[:maxLength]) + "..."
 	}
 	return string(runes)
+}
+
+// ocrImage 使用 Tesseract 对图片进行 OCR，返回识别到的文本。
+// lang 语言建议 "chi_sim+eng"（有英文数字时更稳），也可仅 "chi_sim"。
+func (l *ChatCompletionsLogic) ocrImage(imagePath string, lang string) (string, error) {
+	if lang == "" {
+		lang = "chi_sim+eng"
+	}
+	// 将识别结果输出到 stdout，避免中间文件：tesseract <image> stdout -l <lang> --psm 3
+	// 你也可以把 --psm 换为 6/7/11 等场景更合适的模式。
+	cmd := exec.CommandContext(l.ctx, "tesseract", imagePath, "stdout", "-l", lang, "--psm", "3")
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil {
+		l.Errorf("tesseract ocr failed, stderr: %s", stderr.String())
+		return "", err
+	}
+	text := strings.TrimSpace(out.String())
+	// 简单清洗
+	text = regexp.MustCompile(`[ \t\r\f]+`).ReplaceAllString(text, " ")
+	return text, nil
 }
