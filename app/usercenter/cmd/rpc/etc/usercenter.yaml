@@ -1,6 +1,10 @@
 Name: usercenter.rpc
 ListenOn: 0.0.0.0:8001
-Mode: dev
+Mode: pro
+
+Log:
+  ServiceName: usercenter-rpc
+  Level: error
 
 # etcd 配置
 Etcd:

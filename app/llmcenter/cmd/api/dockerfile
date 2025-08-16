@@ -1,6 +1,6 @@
 # ---- Builder Stage ----
 # 使用官方的 Go Alpine 镜像作为构建环境
-FROM golang:1.23-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 # 设置工作目录
 WORKDIR /app
@@ -35,10 +35,10 @@ COPY --from=builder /app/llmcenter-api .
 
 # 复制 API 服务的静态资源目录
 
-COPY app/llmcenter/cmd/api/data/ ./data/
+COPY app/llmcenter/cmd/data/static /app/data/static
 
 # 暴露 API 服务端口
-EXPOSE 8010
+EXPOSE 8002
 
 # 容器启动命令
 CMD ["./llmcenter-api", "-f", "etc/llmcenter.yaml"]

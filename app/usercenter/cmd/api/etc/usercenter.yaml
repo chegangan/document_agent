@@ -1,11 +1,11 @@
-Name: usercenter
+Name: usercenter.api
 Host: 0.0.0.0
 Port: 8000
-Mode: dev
+Mode: pro
 
 Log:
   ServiceName: usercenter-api
-  Level: info
+  Level: error
 
 #jwtAuth
 JwtAuth:
