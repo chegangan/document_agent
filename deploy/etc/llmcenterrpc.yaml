@@ -45,7 +45,11 @@ LlmApiClient:
   DisableCompression: true
 
 Font:
-  Path: "/usr/share/fonts/custom"
+  Path: "/app/deploy/fonts"
+
+LuaFilters:
+  Align: "/app/deploy/lua/align.lua"
+  Gov:   "/app/deploy/lua/gov.lua"
 
 Download:
   BaseURL: "http://47.98.215.181:8010/llmcenter/v1/public/file"

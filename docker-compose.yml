@@ -97,8 +97,9 @@ services:
       # 同样挂载，确保 RPC 服务能访问到 API 服务上传的文件
       - ./deploy/etc/llmcenterrpc.yaml:/app/etc/llmcenter.yaml
       - ./data/static:/app/data/static
-      # 自定义中文字体（可选），容器内放在 /usr/share/fonts/custom
-      - ./deploy/static/fonts:/usr/share/fonts/custom:ro
+      # 自定义中文字体（可选），容器内放在 /app/deploy/fonts
+      - ./deploy/static/fonts:/app/deploy/fonts
+      - ./deploy/static/lua:/app/deploy/lua
     environment:
       - TZ=Asia/Shanghai
     logging: *default-logging
