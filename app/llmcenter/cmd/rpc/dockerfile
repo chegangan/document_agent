@@ -6,24 +6,50 @@ RUN go env -w GOPROXY=https://goproxy.cn,direct && go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o llmcenter-rpc app/llmcenter/cmd/rpc/llmcenter.go
 
-# ---- Runtime ----
-FROM pandoc/latex:3.1-ubuntu
+# # ---- Runtime ----
+# FROM pandoc/latex:3.1-ubuntu
+# ENV DEBIAN_FRONTEND=noninteractive
+# # 切换到国内源，加快 apt
+# # RUN set -eux; \
+# #     sed -i 's|http://archive.ubuntu.com/ubuntu/|http://mirrors.tuna.tsinghua.edu.cn/ubuntu/|g; s|http://security.ubuntu.com/ubuntu|http://mirrors.tuna.tsinghua.edu.cn/ubuntu|g' /etc/apt/sources.list; \
+# #     apt-get update; \
+# #     apt-get install -y --no-install-recommends \
+# #     texlive-lang-chinese fonts-noto-cjk fontconfig tzdata ca-certificates; \
+# #     rm -rf /var/lib/apt/lists/*
+
+# ---- Runtime Stage ----
+FROM ubuntu:22.04
+
+# 设置为非交互模式，避免安装过程中断
 ENV DEBIAN_FRONTEND=noninteractive
-# 切换到国内源，加快 apt
-RUN set -eux; \
-    sed -i 's|http://archive.ubuntu.com/ubuntu/|http://mirrors.tuna.tsinghua.edu.cn/ubuntu/|g; s|http://security.ubuntu.com/ubuntu|http://mirrors.tuna.tsinghua.edu.cn/ubuntu|g' /etc/apt/sources.list; \
-    apt-get update; \
+
+# 安装 pandoc, XeTeX 引擎, 中文宏包, 中文字体及其他必要工具
+# 使用清华大学的镜像源加速
+# 安装 pandoc, XeTeX 引擎, 中文宏包, 中文字体及其他必要工具
+# 使用清华大学的镜像源加速
+RUN sed -i 's|http://archive.ubuntu.com/ubuntu/|http://mirrors.tuna.tsinghua.edu.cn/ubuntu/|g' /etc/apt/sources.list && \
+    apt-get update && \
     apt-get install -y --no-install-recommends \
-    texlive-lang-chinese fonts-noto-cjk fontconfig tzdata ca-certificates; \
+    pandoc \
+    texlive-xetex \
+    texlive-lang-chinese \
+    texlive-fonts-recommended \
+    lmodern \
+    fonts-noto-cjk \
+    fontconfig \
+    ca-certificates \
+    tzdata && \
+    texhash && \
     rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
+
 COPY --from=builder /app/llmcenter-rpc .
 # ...existing code...
 RUN mkdir -p /app/etc
-# 预置默认配置，卷挂载会覆盖它
 COPY deploy/etc/llmcenterrpc.yaml /app/etc/llmcenter.yaml
-
 COPY app/llmcenter/cmd/data/static /app/data/static
+
 EXPOSE 8003
 
 # 覆盖基础镜像的 ENTRYPOINT，以确保 CMD 能独立运行
