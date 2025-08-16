@@ -19,13 +19,14 @@ DB:
   DataSource: llmcenter:G7v@pL2#xQ9!sT8z@tcp(localhost:3306)/document_agent_llmcenter?charset=utf8mb4&parseTime=true&loc=Asia%2FShanghai
 
 XingChen:
-  FlowID: "7361277433865613314"
+  FlowID: "7362440906314137601"
   ApiURL: "https://xingchen-api.xf-yun.com/workflow/v1/chat/completions"
   ApiResumeURL: "https://xingchen-api.xf-yun.com/workflow/v1/resume"
   ApiSecret: "MmVmZmY4YjhhMmQzMWUxMTllNTFiZjhj"
   ApiKey: "a08967af6fefaf656356d138b67947cf"
   UploadURL: "https://xingchen-api.xf-yun.com/workflow/v1/upload_file"
-  FlagCode: "1433"
+  FlagCode1: "1433"
+  FlagCode2: "1422"
 
 Redis:
   Host: localhost:6379
@@ -35,7 +36,7 @@ Redis:
   Key: llmcenter:redis
   
 Upload:
-  BaseDir: data/static
+  BaseDir: D:/vsproject/document_agent/data/static
 
 LlmApiClient:
   Timeout: 200  # s
@@ -45,11 +46,11 @@ LlmApiClient:
   DisableCompression: true
 
 Font:
-  Path: "deploy/static/fonts"
+  Path: "D:/vsproject/document_agent/deploy/static/fonts"
 
 LuaFilters:
-  Align: "D:/vsproject/document_agent/pkg/assets/lua/align.lua"
-  Gov:   "D:/vsproject/document_agent/pkg/assets/lua/gov.lua"
+  Align: "D:/vsproject/document_agent/deploy/static/lua/align.lua"
+  Gov:   "D:/vsproject/document_agent/deploy/static/lua/gov.lua"
 
 Download:
   BaseURL: "http://127.0.0.1:8010/llmcenter/v1/public/file"

@@ -264,3 +264,28 @@ func (c *XingChenClient) StreamChatForEdit(reqBody []byte, stream pb.LlmCenter_E
 
 	return c.processStreamResponse(resp.Body, handler)
 }
+
+// StreamChatForResume 调用大模型通用 Chat API，但把增量结果按 ChatResumeResponse 推给客户端。
+// 注意：这里不处理 interrupt 事件（Resume 场景无需事件ID恢复）。
+func (c *XingChenClient) StreamChatForResume(reqBody []byte, stream pb.LlmCenter_ChatResumeServer, conversationID string) (string, error) {
+	resp, err := c.doStreamRequest(c.svcCtx.Config.XingChen.ApiURL, reqBody)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	handler := func(apiResp *types.LLMApiResponse) (bool, error) {
+		// Resume 场景：仅发送正文增量
+		if len(apiResp.Choices) > 0 && apiResp.Choices[0].Delta.Content != "" {
+			messageEvent := &pb.SSEMessageEvent{Chunk: apiResp.Choices[0].Delta.Content}
+			if err := stream.Send(&pb.ChatResumeResponse{
+				Event: &pb.ChatResumeResponse_Message{Message: messageEvent},
+			}); err != nil {
+				return true, fmt.Errorf("failed to send message chunk to client: %v:%w", err, xerr.ErrLLMApiCancel)
+			}
+		}
+		return false, nil
+	}
+
+	return c.processStreamResponse(resp.Body, handler)
+}
