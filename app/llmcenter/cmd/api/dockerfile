@@ -35,7 +35,7 @@ COPY --from=builder /app/llmcenter-api .
 
 # 复制 API 服务的静态资源目录
 
-COPY app/llmcenter/cmd/data/static /data/static
+COPY app/llmcenter/cmd/data/static /app/data/static
 
 # 暴露 API 服务端口
 EXPOSE 8002
