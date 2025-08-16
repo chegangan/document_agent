@@ -39,6 +39,7 @@ type (
 	GetHistoryDataRequest         = pb.GetHistoryDataRequest
 	GetHistoryDataResponse        = pb.GetHistoryDataResponse
 	HistoryData                   = pb.HistoryData
+	InfoItem                      = pb.InfoItem
 	Message                       = pb.Message
 	Reference                     = pb.Reference
 	SSEEndEvent                   = pb.SSEEndEvent

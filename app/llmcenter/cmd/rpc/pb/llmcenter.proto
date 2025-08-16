@@ -209,12 +209,18 @@ message UpdateDocumentResponse {
 message ConvertMarkdownRequest {
   string markdown = 1;
   string type = 2; // "pdf" | "docx"
+  repeated InfoItem information = 3; // 新：标题/文号等扩展字段
 }
 
 message ConvertMarkdownResponse {
   string filename = 1;
   string content_type = 2;
   bytes  data = 3;
+}
+
+message InfoItem {
+  string type = 1;     // "title" | "docNo"（大小写不敏感）
+  string contant = 2;  // 文本内容
 }
 
 

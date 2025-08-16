@@ -1243,7 +1243,8 @@ func (x *UpdateDocumentResponse) GetSuccess() bool {
 type ConvertMarkdownRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Markdown      string                 `protobuf:"bytes,1,opt,name=markdown,proto3" json:"markdown,omitempty"`
-	Type          string                 `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"` // "pdf" | "docx"
+	Type          string                 `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`               // "pdf" | "docx"
+	Information   []*InfoItem            `protobuf:"bytes,3,rep,name=information,proto3" json:"information,omitempty"` // 新：标题/文号等扩展字段
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1290,6 +1291,13 @@ func (x *ConvertMarkdownRequest) GetType() string {
 		return x.Type
 	}
 	return ""
+}
+
+func (x *ConvertMarkdownRequest) GetInformation() []*InfoItem {
+	if x != nil {
+		return x.Information
+	}
+	return nil
 }
 
 type ConvertMarkdownResponse struct {
@@ -1352,6 +1360,58 @@ func (x *ConvertMarkdownResponse) GetData() []byte {
 	return nil
 }
 
+type InfoItem struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`       // "title" | "docNo"（大小写不敏感）
+	Contant       string                 `protobuf:"bytes,2,opt,name=contant,proto3" json:"contant,omitempty"` // 文本内容
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InfoItem) Reset() {
+	*x = InfoItem{}
+	mi := &file_llmcenter_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InfoItem) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InfoItem) ProtoMessage() {}
+
+func (x *InfoItem) ProtoReflect() protoreflect.Message {
+	mi := &file_llmcenter_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InfoItem.ProtoReflect.Descriptor instead.
+func (*InfoItem) Descriptor() ([]byte, []int) {
+	return file_llmcenter_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *InfoItem) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *InfoItem) GetContant() string {
+	if x != nil {
+		return x.Contant
+	}
+	return ""
+}
+
 // 请求流: 文件上传
 // 客户端流的第一个消息必须是 FileInfo，后续消息为文件数据块。
 type FileUploadRequest struct {
@@ -1367,7 +1427,7 @@ type FileUploadRequest struct {
 
 func (x *FileUploadRequest) Reset() {
 	*x = FileUploadRequest{}
-	mi := &file_llmcenter_proto_msgTypes[21]
+	mi := &file_llmcenter_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1379,7 +1439,7 @@ func (x *FileUploadRequest) String() string {
 func (*FileUploadRequest) ProtoMessage() {}
 
 func (x *FileUploadRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_llmcenter_proto_msgTypes[21]
+	mi := &file_llmcenter_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1392,7 +1452,7 @@ func (x *FileUploadRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileUploadRequest.ProtoReflect.Descriptor instead.
 func (*FileUploadRequest) Descriptor() ([]byte, []int) {
-	return file_llmcenter_proto_rawDescGZIP(), []int{21}
+	return file_llmcenter_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *FileUploadRequest) GetData() isFileUploadRequest_Data {
@@ -1446,7 +1506,7 @@ type FileInfo struct {
 
 func (x *FileInfo) Reset() {
 	*x = FileInfo{}
-	mi := &file_llmcenter_proto_msgTypes[22]
+	mi := &file_llmcenter_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1458,7 +1518,7 @@ func (x *FileInfo) String() string {
 func (*FileInfo) ProtoMessage() {}
 
 func (x *FileInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_llmcenter_proto_msgTypes[22]
+	mi := &file_llmcenter_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1471,7 +1531,7 @@ func (x *FileInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileInfo.ProtoReflect.Descriptor instead.
 func (*FileInfo) Descriptor() ([]byte, []int) {
-	return file_llmcenter_proto_rawDescGZIP(), []int{22}
+	return file_llmcenter_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *FileInfo) GetFileName() string {
@@ -1494,7 +1554,7 @@ type FileUploadResponse struct {
 
 func (x *FileUploadResponse) Reset() {
 	*x = FileUploadResponse{}
-	mi := &file_llmcenter_proto_msgTypes[23]
+	mi := &file_llmcenter_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1506,7 +1566,7 @@ func (x *FileUploadResponse) String() string {
 func (*FileUploadResponse) ProtoMessage() {}
 
 func (x *FileUploadResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_llmcenter_proto_msgTypes[23]
+	mi := &file_llmcenter_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1519,7 +1579,7 @@ func (x *FileUploadResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FileUploadResponse.ProtoReflect.Descriptor instead.
 func (*FileUploadResponse) Descriptor() ([]byte, []int) {
-	return file_llmcenter_proto_rawDescGZIP(), []int{23}
+	return file_llmcenter_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *FileUploadResponse) GetFileId() string {
@@ -1561,7 +1621,7 @@ type Reference struct {
 
 func (x *Reference) Reset() {
 	*x = Reference{}
-	mi := &file_llmcenter_proto_msgTypes[24]
+	mi := &file_llmcenter_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1573,7 +1633,7 @@ func (x *Reference) String() string {
 func (*Reference) ProtoMessage() {}
 
 func (x *Reference) ProtoReflect() protoreflect.Message {
-	mi := &file_llmcenter_proto_msgTypes[24]
+	mi := &file_llmcenter_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1586,7 +1646,7 @@ func (x *Reference) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Reference.ProtoReflect.Descriptor instead.
 func (*Reference) Descriptor() ([]byte, []int) {
-	return file_llmcenter_proto_rawDescGZIP(), []int{24}
+	return file_llmcenter_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *Reference) GetType() string {
@@ -1615,7 +1675,7 @@ type Conversation struct {
 
 func (x *Conversation) Reset() {
 	*x = Conversation{}
-	mi := &file_llmcenter_proto_msgTypes[25]
+	mi := &file_llmcenter_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1627,7 +1687,7 @@ func (x *Conversation) String() string {
 func (*Conversation) ProtoMessage() {}
 
 func (x *Conversation) ProtoReflect() protoreflect.Message {
-	mi := &file_llmcenter_proto_msgTypes[25]
+	mi := &file_llmcenter_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1640,7 +1700,7 @@ func (x *Conversation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Conversation.ProtoReflect.Descriptor instead.
 func (*Conversation) Descriptor() ([]byte, []int) {
-	return file_llmcenter_proto_rawDescGZIP(), []int{25}
+	return file_llmcenter_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *Conversation) GetConversationId() string {
@@ -1678,7 +1738,7 @@ type Message struct {
 
 func (x *Message) Reset() {
 	*x = Message{}
-	mi := &file_llmcenter_proto_msgTypes[26]
+	mi := &file_llmcenter_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1690,7 +1750,7 @@ func (x *Message) String() string {
 func (*Message) ProtoMessage() {}
 
 func (x *Message) ProtoReflect() protoreflect.Message {
-	mi := &file_llmcenter_proto_msgTypes[26]
+	mi := &file_llmcenter_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1703,7 +1763,7 @@ func (x *Message) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Message.ProtoReflect.Descriptor instead.
 func (*Message) Descriptor() ([]byte, []int) {
-	return file_llmcenter_proto_rawDescGZIP(), []int{26}
+	return file_llmcenter_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *Message) GetId() string {
@@ -1752,7 +1812,7 @@ type SSEMessageEvent struct {
 
 func (x *SSEMessageEvent) Reset() {
 	*x = SSEMessageEvent{}
-	mi := &file_llmcenter_proto_msgTypes[27]
+	mi := &file_llmcenter_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1764,7 +1824,7 @@ func (x *SSEMessageEvent) String() string {
 func (*SSEMessageEvent) ProtoMessage() {}
 
 func (x *SSEMessageEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_llmcenter_proto_msgTypes[27]
+	mi := &file_llmcenter_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1777,7 +1837,7 @@ func (x *SSEMessageEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SSEMessageEvent.ProtoReflect.Descriptor instead.
 func (*SSEMessageEvent) Descriptor() ([]byte, []int) {
-	return file_llmcenter_proto_rawDescGZIP(), []int{27}
+	return file_llmcenter_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *SSEMessageEvent) GetChunk() string {
@@ -1801,7 +1861,7 @@ type SSEInterruptEvent struct {
 
 func (x *SSEInterruptEvent) Reset() {
 	*x = SSEInterruptEvent{}
-	mi := &file_llmcenter_proto_msgTypes[28]
+	mi := &file_llmcenter_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1813,7 +1873,7 @@ func (x *SSEInterruptEvent) String() string {
 func (*SSEInterruptEvent) ProtoMessage() {}
 
 func (x *SSEInterruptEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_llmcenter_proto_msgTypes[28]
+	mi := &file_llmcenter_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1826,7 +1886,7 @@ func (x *SSEInterruptEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SSEInterruptEvent.ProtoReflect.Descriptor instead.
 func (*SSEInterruptEvent) Descriptor() ([]byte, []int) {
-	return file_llmcenter_proto_rawDescGZIP(), []int{28}
+	return file_llmcenter_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *SSEInterruptEvent) GetConversationId() string {
@@ -1869,7 +1929,7 @@ type SSEEndEvent struct {
 
 func (x *SSEEndEvent) Reset() {
 	*x = SSEEndEvent{}
-	mi := &file_llmcenter_proto_msgTypes[29]
+	mi := &file_llmcenter_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1881,7 +1941,7 @@ func (x *SSEEndEvent) String() string {
 func (*SSEEndEvent) ProtoMessage() {}
 
 func (x *SSEEndEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_llmcenter_proto_msgTypes[29]
+	mi := &file_llmcenter_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1894,7 +1954,7 @@ func (x *SSEEndEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SSEEndEvent.ProtoReflect.Descriptor instead.
 func (*SSEEndEvent) Descriptor() ([]byte, []int) {
-	return file_llmcenter_proto_rawDescGZIP(), []int{29}
+	return file_llmcenter_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *SSEEndEvent) GetConversationId() string {
@@ -1921,7 +1981,7 @@ type ConvertMarkdownLinkRequest struct {
 
 func (x *ConvertMarkdownLinkRequest) Reset() {
 	*x = ConvertMarkdownLinkRequest{}
-	mi := &file_llmcenter_proto_msgTypes[30]
+	mi := &file_llmcenter_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1933,7 +1993,7 @@ func (x *ConvertMarkdownLinkRequest) String() string {
 func (*ConvertMarkdownLinkRequest) ProtoMessage() {}
 
 func (x *ConvertMarkdownLinkRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_llmcenter_proto_msgTypes[30]
+	mi := &file_llmcenter_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1946,7 +2006,7 @@ func (x *ConvertMarkdownLinkRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConvertMarkdownLinkRequest.ProtoReflect.Descriptor instead.
 func (*ConvertMarkdownLinkRequest) Descriptor() ([]byte, []int) {
-	return file_llmcenter_proto_rawDescGZIP(), []int{30}
+	return file_llmcenter_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *ConvertMarkdownLinkRequest) GetType() string {
@@ -1975,7 +2035,7 @@ type ConvertMarkdownLinkResponse struct {
 
 func (x *ConvertMarkdownLinkResponse) Reset() {
 	*x = ConvertMarkdownLinkResponse{}
-	mi := &file_llmcenter_proto_msgTypes[31]
+	mi := &file_llmcenter_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1987,7 +2047,7 @@ func (x *ConvertMarkdownLinkResponse) String() string {
 func (*ConvertMarkdownLinkResponse) ProtoMessage() {}
 
 func (x *ConvertMarkdownLinkResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_llmcenter_proto_msgTypes[31]
+	mi := &file_llmcenter_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2000,7 +2060,7 @@ func (x *ConvertMarkdownLinkResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConvertMarkdownLinkResponse.ProtoReflect.Descriptor instead.
 func (*ConvertMarkdownLinkResponse) Descriptor() ([]byte, []int) {
-	return file_llmcenter_proto_rawDescGZIP(), []int{31}
+	return file_llmcenter_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *ConvertMarkdownLinkResponse) GetFilename() string {
@@ -2120,14 +2180,18 @@ const file_llmcenter_proto_rawDesc = "" +
 	"message_id\x18\x02 \x01(\tR\tmessageId\x12\x16\n" +
 	"\x06prompt\x18\x03 \x01(\tR\x06prompt\"2\n" +
 	"\x16UpdateDocumentResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\"H\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"\x7f\n" +
 	"\x16ConvertMarkdownRequest\x12\x1a\n" +
 	"\bmarkdown\x18\x01 \x01(\tR\bmarkdown\x12\x12\n" +
-	"\x04type\x18\x02 \x01(\tR\x04type\"l\n" +
+	"\x04type\x18\x02 \x01(\tR\x04type\x125\n" +
+	"\vinformation\x18\x03 \x03(\v2\x13.llmcenter.InfoItemR\vinformation\"l\n" +
 	"\x17ConvertMarkdownResponse\x12\x1a\n" +
 	"\bfilename\x18\x01 \x01(\tR\bfilename\x12!\n" +
 	"\fcontent_type\x18\x02 \x01(\tR\vcontentType\x12\x12\n" +
-	"\x04data\x18\x03 \x01(\fR\x04data\"^\n" +
+	"\x04data\x18\x03 \x01(\fR\x04data\"8\n" +
+	"\bInfoItem\x12\x12\n" +
+	"\x04type\x18\x01 \x01(\tR\x04type\x12\x18\n" +
+	"\acontant\x18\x02 \x01(\tR\acontant\"^\n" +
 	"\x11FileUploadRequest\x12)\n" +
 	"\x04info\x18\x01 \x01(\v2\x13.llmcenter.FileInfoH\x00R\x04info\x12\x16\n" +
 	"\x05chunk\x18\x02 \x01(\fH\x00R\x05chunkB\x06\n" +
@@ -2201,7 +2265,7 @@ func file_llmcenter_proto_rawDescGZIP() []byte {
 	return file_llmcenter_proto_rawDescData
 }
 
-var file_llmcenter_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
+var file_llmcenter_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
 var file_llmcenter_proto_goTypes = []any{
 	(*ChatCompletionsRequest)(nil),        // 0: llmcenter.ChatCompletionsRequest
 	(*ChatCompletionsResponse)(nil),       // 1: llmcenter.ChatCompletionsResponse
@@ -2224,60 +2288,62 @@ var file_llmcenter_proto_goTypes = []any{
 	(*UpdateDocumentResponse)(nil),        // 18: llmcenter.UpdateDocumentResponse
 	(*ConvertMarkdownRequest)(nil),        // 19: llmcenter.ConvertMarkdownRequest
 	(*ConvertMarkdownResponse)(nil),       // 20: llmcenter.ConvertMarkdownResponse
-	(*FileUploadRequest)(nil),             // 21: llmcenter.FileUploadRequest
-	(*FileInfo)(nil),                      // 22: llmcenter.FileInfo
-	(*FileUploadResponse)(nil),            // 23: llmcenter.FileUploadResponse
-	(*Reference)(nil),                     // 24: llmcenter.Reference
-	(*Conversation)(nil),                  // 25: llmcenter.Conversation
-	(*Message)(nil),                       // 26: llmcenter.Message
-	(*SSEMessageEvent)(nil),               // 27: llmcenter.SSEMessageEvent
-	(*SSEInterruptEvent)(nil),             // 28: llmcenter.SSEInterruptEvent
-	(*SSEEndEvent)(nil),                   // 29: llmcenter.SSEEndEvent
-	(*ConvertMarkdownLinkRequest)(nil),    // 30: llmcenter.ConvertMarkdownLinkRequest
-	(*ConvertMarkdownLinkResponse)(nil),   // 31: llmcenter.ConvertMarkdownLinkResponse
+	(*InfoItem)(nil),                      // 21: llmcenter.InfoItem
+	(*FileUploadRequest)(nil),             // 22: llmcenter.FileUploadRequest
+	(*FileInfo)(nil),                      // 23: llmcenter.FileInfo
+	(*FileUploadResponse)(nil),            // 24: llmcenter.FileUploadResponse
+	(*Reference)(nil),                     // 25: llmcenter.Reference
+	(*Conversation)(nil),                  // 26: llmcenter.Conversation
+	(*Message)(nil),                       // 27: llmcenter.Message
+	(*SSEMessageEvent)(nil),               // 28: llmcenter.SSEMessageEvent
+	(*SSEInterruptEvent)(nil),             // 29: llmcenter.SSEInterruptEvent
+	(*SSEEndEvent)(nil),                   // 30: llmcenter.SSEEndEvent
+	(*ConvertMarkdownLinkRequest)(nil),    // 31: llmcenter.ConvertMarkdownLinkRequest
+	(*ConvertMarkdownLinkResponse)(nil),   // 32: llmcenter.ConvertMarkdownLinkResponse
 }
 var file_llmcenter_proto_depIdxs = []int32{
-	24, // 0: llmcenter.ChatCompletionsRequest.references:type_name -> llmcenter.Reference
-	27, // 1: llmcenter.ChatCompletionsResponse.message:type_name -> llmcenter.SSEMessageEvent
-	28, // 2: llmcenter.ChatCompletionsResponse.interrupt:type_name -> llmcenter.SSEInterruptEvent
-	29, // 3: llmcenter.ChatCompletionsResponse.end:type_name -> llmcenter.SSEEndEvent
-	27, // 4: llmcenter.ChatResumeResponse.message:type_name -> llmcenter.SSEMessageEvent
-	29, // 5: llmcenter.ChatResumeResponse.end:type_name -> llmcenter.SSEEndEvent
-	25, // 6: llmcenter.GetConversationsResponse.data:type_name -> llmcenter.Conversation
-	26, // 7: llmcenter.GetConversationDetailResponse.history:type_name -> llmcenter.Message
+	25, // 0: llmcenter.ChatCompletionsRequest.references:type_name -> llmcenter.Reference
+	28, // 1: llmcenter.ChatCompletionsResponse.message:type_name -> llmcenter.SSEMessageEvent
+	29, // 2: llmcenter.ChatCompletionsResponse.interrupt:type_name -> llmcenter.SSEInterruptEvent
+	30, // 3: llmcenter.ChatCompletionsResponse.end:type_name -> llmcenter.SSEEndEvent
+	28, // 4: llmcenter.ChatResumeResponse.message:type_name -> llmcenter.SSEMessageEvent
+	30, // 5: llmcenter.ChatResumeResponse.end:type_name -> llmcenter.SSEEndEvent
+	26, // 6: llmcenter.GetConversationsResponse.data:type_name -> llmcenter.Conversation
+	27, // 7: llmcenter.GetConversationDetailResponse.history:type_name -> llmcenter.Message
 	9,  // 8: llmcenter.GetDocumentDetailResponse.documents:type_name -> llmcenter.Document
 	13, // 9: llmcenter.GetHistoryDataResponse.items:type_name -> llmcenter.HistoryData
 	14, // 10: llmcenter.HistoryData.references:type_name -> llmcenter.FileReference
-	27, // 11: llmcenter.EditDocumentResponse.message:type_name -> llmcenter.SSEMessageEvent
-	29, // 12: llmcenter.EditDocumentResponse.end:type_name -> llmcenter.SSEEndEvent
-	22, // 13: llmcenter.FileUploadRequest.info:type_name -> llmcenter.FileInfo
-	0,  // 14: llmcenter.LlmCenter.ChatCompletions:input_type -> llmcenter.ChatCompletionsRequest
-	2,  // 15: llmcenter.LlmCenter.ChatResume:input_type -> llmcenter.ChatResumeRequest
-	21, // 16: llmcenter.LlmCenter.FileUpload:input_type -> llmcenter.FileUploadRequest
-	4,  // 17: llmcenter.LlmCenter.GetConversations:input_type -> llmcenter.GetConversationsRequest
-	6,  // 18: llmcenter.LlmCenter.GetConversationDetail:input_type -> llmcenter.GetConversationDetailRequest
-	8,  // 19: llmcenter.LlmCenter.GetDocumentDetail:input_type -> llmcenter.GetDocumentDetailRequest
-	11, // 20: llmcenter.LlmCenter.GetHistoryData:input_type -> llmcenter.GetHistoryDataRequest
-	15, // 21: llmcenter.LlmCenter.EditDocument:input_type -> llmcenter.EditDocumentRequest
-	17, // 22: llmcenter.LlmCenter.UpdateDocument:input_type -> llmcenter.UpdateDocumentRequest
-	19, // 23: llmcenter.LlmCenter.ConvertMarkdown:input_type -> llmcenter.ConvertMarkdownRequest
-	30, // 24: llmcenter.LlmCenter.ConvertMarkdownLink:input_type -> llmcenter.ConvertMarkdownLinkRequest
-	1,  // 25: llmcenter.LlmCenter.ChatCompletions:output_type -> llmcenter.ChatCompletionsResponse
-	3,  // 26: llmcenter.LlmCenter.ChatResume:output_type -> llmcenter.ChatResumeResponse
-	23, // 27: llmcenter.LlmCenter.FileUpload:output_type -> llmcenter.FileUploadResponse
-	5,  // 28: llmcenter.LlmCenter.GetConversations:output_type -> llmcenter.GetConversationsResponse
-	7,  // 29: llmcenter.LlmCenter.GetConversationDetail:output_type -> llmcenter.GetConversationDetailResponse
-	10, // 30: llmcenter.LlmCenter.GetDocumentDetail:output_type -> llmcenter.GetDocumentDetailResponse
-	12, // 31: llmcenter.LlmCenter.GetHistoryData:output_type -> llmcenter.GetHistoryDataResponse
-	16, // 32: llmcenter.LlmCenter.EditDocument:output_type -> llmcenter.EditDocumentResponse
-	18, // 33: llmcenter.LlmCenter.UpdateDocument:output_type -> llmcenter.UpdateDocumentResponse
-	20, // 34: llmcenter.LlmCenter.ConvertMarkdown:output_type -> llmcenter.ConvertMarkdownResponse
-	31, // 35: llmcenter.LlmCenter.ConvertMarkdownLink:output_type -> llmcenter.ConvertMarkdownLinkResponse
-	25, // [25:36] is the sub-list for method output_type
-	14, // [14:25] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	28, // 11: llmcenter.EditDocumentResponse.message:type_name -> llmcenter.SSEMessageEvent
+	30, // 12: llmcenter.EditDocumentResponse.end:type_name -> llmcenter.SSEEndEvent
+	21, // 13: llmcenter.ConvertMarkdownRequest.information:type_name -> llmcenter.InfoItem
+	23, // 14: llmcenter.FileUploadRequest.info:type_name -> llmcenter.FileInfo
+	0,  // 15: llmcenter.LlmCenter.ChatCompletions:input_type -> llmcenter.ChatCompletionsRequest
+	2,  // 16: llmcenter.LlmCenter.ChatResume:input_type -> llmcenter.ChatResumeRequest
+	22, // 17: llmcenter.LlmCenter.FileUpload:input_type -> llmcenter.FileUploadRequest
+	4,  // 18: llmcenter.LlmCenter.GetConversations:input_type -> llmcenter.GetConversationsRequest
+	6,  // 19: llmcenter.LlmCenter.GetConversationDetail:input_type -> llmcenter.GetConversationDetailRequest
+	8,  // 20: llmcenter.LlmCenter.GetDocumentDetail:input_type -> llmcenter.GetDocumentDetailRequest
+	11, // 21: llmcenter.LlmCenter.GetHistoryData:input_type -> llmcenter.GetHistoryDataRequest
+	15, // 22: llmcenter.LlmCenter.EditDocument:input_type -> llmcenter.EditDocumentRequest
+	17, // 23: llmcenter.LlmCenter.UpdateDocument:input_type -> llmcenter.UpdateDocumentRequest
+	19, // 24: llmcenter.LlmCenter.ConvertMarkdown:input_type -> llmcenter.ConvertMarkdownRequest
+	31, // 25: llmcenter.LlmCenter.ConvertMarkdownLink:input_type -> llmcenter.ConvertMarkdownLinkRequest
+	1,  // 26: llmcenter.LlmCenter.ChatCompletions:output_type -> llmcenter.ChatCompletionsResponse
+	3,  // 27: llmcenter.LlmCenter.ChatResume:output_type -> llmcenter.ChatResumeResponse
+	24, // 28: llmcenter.LlmCenter.FileUpload:output_type -> llmcenter.FileUploadResponse
+	5,  // 29: llmcenter.LlmCenter.GetConversations:output_type -> llmcenter.GetConversationsResponse
+	7,  // 30: llmcenter.LlmCenter.GetConversationDetail:output_type -> llmcenter.GetConversationDetailResponse
+	10, // 31: llmcenter.LlmCenter.GetDocumentDetail:output_type -> llmcenter.GetDocumentDetailResponse
+	12, // 32: llmcenter.LlmCenter.GetHistoryData:output_type -> llmcenter.GetHistoryDataResponse
+	16, // 33: llmcenter.LlmCenter.EditDocument:output_type -> llmcenter.EditDocumentResponse
+	18, // 34: llmcenter.LlmCenter.UpdateDocument:output_type -> llmcenter.UpdateDocumentResponse
+	20, // 35: llmcenter.LlmCenter.ConvertMarkdown:output_type -> llmcenter.ConvertMarkdownResponse
+	32, // 36: llmcenter.LlmCenter.ConvertMarkdownLink:output_type -> llmcenter.ConvertMarkdownLinkResponse
+	26, // [26:37] is the sub-list for method output_type
+	15, // [15:26] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_llmcenter_proto_init() }
@@ -2298,7 +2364,7 @@ func file_llmcenter_proto_init() {
 		(*EditDocumentResponse_Message)(nil),
 		(*EditDocumentResponse_End)(nil),
 	}
-	file_llmcenter_proto_msgTypes[21].OneofWrappers = []any{
+	file_llmcenter_proto_msgTypes[22].OneofWrappers = []any{
 		(*FileUploadRequest_Info)(nil),
 		(*FileUploadRequest_Chunk)(nil),
 	}
@@ -2308,7 +2374,7 @@ func file_llmcenter_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_llmcenter_proto_rawDesc), len(file_llmcenter_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   32,
+			NumMessages:   33,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

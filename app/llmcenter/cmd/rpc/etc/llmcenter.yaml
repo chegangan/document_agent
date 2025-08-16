@@ -47,6 +47,10 @@ LlmApiClient:
 Font:
   Path: "deploy/static/fonts"
 
+LuaFilters:
+  Align: "D:/vsproject/document_agent/pkg/assets/lua/align.lua"
+  Gov:   "D:/vsproject/document_agent/pkg/assets/lua/gov.lua"
+
 Download:
   BaseURL: "http://127.0.0.1:8010/llmcenter/v1/public/file"
   # 与 API 共享的签名密钥（两边保持一致）

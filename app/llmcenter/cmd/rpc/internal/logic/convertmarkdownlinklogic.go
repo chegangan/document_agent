@@ -43,8 +43,15 @@ func (l *ConvertMarkdownLinkLogic) ConvertMarkdownLink(in *pb.ConvertMarkdownLin
 	md := strings.ReplaceAll(in.Markdown, "\r\n", "\n")
 	md = preprocessMarkdown(md)
 
+	md = applyLineAlignments(md)
+
+	title := "某某县人民政府文件"
+	docNo := "某政【2025】1号"
+
+	md = decorateGovHeaderAndBody(md, t, title, docNo)
+
 	// 2) 通过 Pandoc 生成目标格式
-	data, err := runPandoc(l.ctx, md, t, l.svcCtx.Config.Font.Path)
+	data, err := runPandoc(l.ctx, md, t, l.svcCtx.Config.Font.Path, l.svcCtx.Config.LuaFilters.Align, l.svcCtx.Config.LuaFilters.Gov, title, docNo)
 	if err != nil {
 		return nil, fmt.Errorf("渲染失败: %w", err)
 	}
