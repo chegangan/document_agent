@@ -233,6 +233,8 @@ type ChatResumeRequest struct {
 	ConversationId string                 `protobuf:"bytes,1,opt,name=conversation_id,json=conversationId,proto3" json:"conversation_id,omitempty"` // 必选: 当前会话的ID。
 	Content        string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`                                     // 必选: 用户在前端编辑器中确认后的完整内容。
 	TemplateId     string                 `protobuf:"bytes,3,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`             // 可选: 如果用户在这一步选择了模板。
+	Documenttype   string                 `protobuf:"bytes,5,opt,name=documenttype,proto3" json:"documenttype,omitempty"`                           // 新增：续写的文档类型
+	References     []*Reference           `protobuf:"bytes,6,rep,name=references,proto3" json:"references,omitempty"`                               // 新增：附件引用（图片/文档）
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -293,6 +295,20 @@ func (x *ChatResumeRequest) GetTemplateId() string {
 		return x.TemplateId
 	}
 	return ""
+}
+
+func (x *ChatResumeRequest) GetDocumenttype() string {
+	if x != nil {
+		return x.Documenttype
+	}
+	return ""
+}
+
+func (x *ChatResumeRequest) GetReferences() []*Reference {
+	if x != nil {
+		return x.References
+	}
+	return nil
 }
 
 // 响应流: ChatResume 的流式响应体
@@ -2111,13 +2127,17 @@ const file_llmcenter_proto_rawDesc = "" +
 	"\amessage\x18\x01 \x01(\v2\x1a.llmcenter.SSEMessageEventH\x00R\amessage\x12<\n" +
 	"\tinterrupt\x18\x02 \x01(\v2\x1c.llmcenter.SSEInterruptEventH\x00R\tinterrupt\x12*\n" +
 	"\x03end\x18\x03 \x01(\v2\x16.llmcenter.SSEEndEventH\x00R\x03endB\a\n" +
-	"\x05event\"\x90\x01\n" +
+	"\x05event\"\xea\x01\n" +
 	"\x11ChatResumeRequest\x12\x17\n" +
 	"\auser_id\x18\x04 \x01(\x03R\x06userId\x12'\n" +
 	"\x0fconversation_id\x18\x01 \x01(\tR\x0econversationId\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\tR\acontent\x12\x1f\n" +
 	"\vtemplate_id\x18\x03 \x01(\tR\n" +
-	"templateId\"\x81\x01\n" +
+	"templateId\x12\"\n" +
+	"\fdocumenttype\x18\x05 \x01(\tR\fdocumenttype\x124\n" +
+	"\n" +
+	"references\x18\x06 \x03(\v2\x14.llmcenter.ReferenceR\n" +
+	"references\"\x81\x01\n" +
 	"\x12ChatResumeResponse\x126\n" +
 	"\amessage\x18\x01 \x01(\v2\x1a.llmcenter.SSEMessageEventH\x00R\amessage\x12*\n" +
 	"\x03end\x18\x02 \x01(\v2\x16.llmcenter.SSEEndEventH\x00R\x03endB\a\n" +
@@ -2306,44 +2326,45 @@ var file_llmcenter_proto_depIdxs = []int32{
 	28, // 1: llmcenter.ChatCompletionsResponse.message:type_name -> llmcenter.SSEMessageEvent
 	29, // 2: llmcenter.ChatCompletionsResponse.interrupt:type_name -> llmcenter.SSEInterruptEvent
 	30, // 3: llmcenter.ChatCompletionsResponse.end:type_name -> llmcenter.SSEEndEvent
-	28, // 4: llmcenter.ChatResumeResponse.message:type_name -> llmcenter.SSEMessageEvent
-	30, // 5: llmcenter.ChatResumeResponse.end:type_name -> llmcenter.SSEEndEvent
-	26, // 6: llmcenter.GetConversationsResponse.data:type_name -> llmcenter.Conversation
-	27, // 7: llmcenter.GetConversationDetailResponse.history:type_name -> llmcenter.Message
-	9,  // 8: llmcenter.GetDocumentDetailResponse.documents:type_name -> llmcenter.Document
-	13, // 9: llmcenter.GetHistoryDataResponse.items:type_name -> llmcenter.HistoryData
-	14, // 10: llmcenter.HistoryData.references:type_name -> llmcenter.FileReference
-	28, // 11: llmcenter.EditDocumentResponse.message:type_name -> llmcenter.SSEMessageEvent
-	30, // 12: llmcenter.EditDocumentResponse.end:type_name -> llmcenter.SSEEndEvent
-	21, // 13: llmcenter.ConvertMarkdownRequest.information:type_name -> llmcenter.InfoItem
-	23, // 14: llmcenter.FileUploadRequest.info:type_name -> llmcenter.FileInfo
-	0,  // 15: llmcenter.LlmCenter.ChatCompletions:input_type -> llmcenter.ChatCompletionsRequest
-	2,  // 16: llmcenter.LlmCenter.ChatResume:input_type -> llmcenter.ChatResumeRequest
-	22, // 17: llmcenter.LlmCenter.FileUpload:input_type -> llmcenter.FileUploadRequest
-	4,  // 18: llmcenter.LlmCenter.GetConversations:input_type -> llmcenter.GetConversationsRequest
-	6,  // 19: llmcenter.LlmCenter.GetConversationDetail:input_type -> llmcenter.GetConversationDetailRequest
-	8,  // 20: llmcenter.LlmCenter.GetDocumentDetail:input_type -> llmcenter.GetDocumentDetailRequest
-	11, // 21: llmcenter.LlmCenter.GetHistoryData:input_type -> llmcenter.GetHistoryDataRequest
-	15, // 22: llmcenter.LlmCenter.EditDocument:input_type -> llmcenter.EditDocumentRequest
-	17, // 23: llmcenter.LlmCenter.UpdateDocument:input_type -> llmcenter.UpdateDocumentRequest
-	19, // 24: llmcenter.LlmCenter.ConvertMarkdown:input_type -> llmcenter.ConvertMarkdownRequest
-	31, // 25: llmcenter.LlmCenter.ConvertMarkdownLink:input_type -> llmcenter.ConvertMarkdownLinkRequest
-	1,  // 26: llmcenter.LlmCenter.ChatCompletions:output_type -> llmcenter.ChatCompletionsResponse
-	3,  // 27: llmcenter.LlmCenter.ChatResume:output_type -> llmcenter.ChatResumeResponse
-	24, // 28: llmcenter.LlmCenter.FileUpload:output_type -> llmcenter.FileUploadResponse
-	5,  // 29: llmcenter.LlmCenter.GetConversations:output_type -> llmcenter.GetConversationsResponse
-	7,  // 30: llmcenter.LlmCenter.GetConversationDetail:output_type -> llmcenter.GetConversationDetailResponse
-	10, // 31: llmcenter.LlmCenter.GetDocumentDetail:output_type -> llmcenter.GetDocumentDetailResponse
-	12, // 32: llmcenter.LlmCenter.GetHistoryData:output_type -> llmcenter.GetHistoryDataResponse
-	16, // 33: llmcenter.LlmCenter.EditDocument:output_type -> llmcenter.EditDocumentResponse
-	18, // 34: llmcenter.LlmCenter.UpdateDocument:output_type -> llmcenter.UpdateDocumentResponse
-	20, // 35: llmcenter.LlmCenter.ConvertMarkdown:output_type -> llmcenter.ConvertMarkdownResponse
-	32, // 36: llmcenter.LlmCenter.ConvertMarkdownLink:output_type -> llmcenter.ConvertMarkdownLinkResponse
-	26, // [26:37] is the sub-list for method output_type
-	15, // [15:26] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	25, // 4: llmcenter.ChatResumeRequest.references:type_name -> llmcenter.Reference
+	28, // 5: llmcenter.ChatResumeResponse.message:type_name -> llmcenter.SSEMessageEvent
+	30, // 6: llmcenter.ChatResumeResponse.end:type_name -> llmcenter.SSEEndEvent
+	26, // 7: llmcenter.GetConversationsResponse.data:type_name -> llmcenter.Conversation
+	27, // 8: llmcenter.GetConversationDetailResponse.history:type_name -> llmcenter.Message
+	9,  // 9: llmcenter.GetDocumentDetailResponse.documents:type_name -> llmcenter.Document
+	13, // 10: llmcenter.GetHistoryDataResponse.items:type_name -> llmcenter.HistoryData
+	14, // 11: llmcenter.HistoryData.references:type_name -> llmcenter.FileReference
+	28, // 12: llmcenter.EditDocumentResponse.message:type_name -> llmcenter.SSEMessageEvent
+	30, // 13: llmcenter.EditDocumentResponse.end:type_name -> llmcenter.SSEEndEvent
+	21, // 14: llmcenter.ConvertMarkdownRequest.information:type_name -> llmcenter.InfoItem
+	23, // 15: llmcenter.FileUploadRequest.info:type_name -> llmcenter.FileInfo
+	0,  // 16: llmcenter.LlmCenter.ChatCompletions:input_type -> llmcenter.ChatCompletionsRequest
+	2,  // 17: llmcenter.LlmCenter.ChatResume:input_type -> llmcenter.ChatResumeRequest
+	22, // 18: llmcenter.LlmCenter.FileUpload:input_type -> llmcenter.FileUploadRequest
+	4,  // 19: llmcenter.LlmCenter.GetConversations:input_type -> llmcenter.GetConversationsRequest
+	6,  // 20: llmcenter.LlmCenter.GetConversationDetail:input_type -> llmcenter.GetConversationDetailRequest
+	8,  // 21: llmcenter.LlmCenter.GetDocumentDetail:input_type -> llmcenter.GetDocumentDetailRequest
+	11, // 22: llmcenter.LlmCenter.GetHistoryData:input_type -> llmcenter.GetHistoryDataRequest
+	15, // 23: llmcenter.LlmCenter.EditDocument:input_type -> llmcenter.EditDocumentRequest
+	17, // 24: llmcenter.LlmCenter.UpdateDocument:input_type -> llmcenter.UpdateDocumentRequest
+	19, // 25: llmcenter.LlmCenter.ConvertMarkdown:input_type -> llmcenter.ConvertMarkdownRequest
+	31, // 26: llmcenter.LlmCenter.ConvertMarkdownLink:input_type -> llmcenter.ConvertMarkdownLinkRequest
+	1,  // 27: llmcenter.LlmCenter.ChatCompletions:output_type -> llmcenter.ChatCompletionsResponse
+	3,  // 28: llmcenter.LlmCenter.ChatResume:output_type -> llmcenter.ChatResumeResponse
+	24, // 29: llmcenter.LlmCenter.FileUpload:output_type -> llmcenter.FileUploadResponse
+	5,  // 30: llmcenter.LlmCenter.GetConversations:output_type -> llmcenter.GetConversationsResponse
+	7,  // 31: llmcenter.LlmCenter.GetConversationDetail:output_type -> llmcenter.GetConversationDetailResponse
+	10, // 32: llmcenter.LlmCenter.GetDocumentDetail:output_type -> llmcenter.GetDocumentDetailResponse
+	12, // 33: llmcenter.LlmCenter.GetHistoryData:output_type -> llmcenter.GetHistoryDataResponse
+	16, // 34: llmcenter.LlmCenter.EditDocument:output_type -> llmcenter.EditDocumentResponse
+	18, // 35: llmcenter.LlmCenter.UpdateDocument:output_type -> llmcenter.UpdateDocumentResponse
+	20, // 36: llmcenter.LlmCenter.ConvertMarkdown:output_type -> llmcenter.ConvertMarkdownResponse
+	32, // 37: llmcenter.LlmCenter.ConvertMarkdownLink:output_type -> llmcenter.ConvertMarkdownLinkResponse
+	27, // [27:38] is the sub-list for method output_type
+	16, // [16:27] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_llmcenter_proto_init() }

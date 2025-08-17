@@ -17,9 +17,11 @@ type ChatCompletionsResponse struct {
 }
 
 type ChatResumeRequest struct {
-	ConversationID string `json:"conversation_id"`
-	Content        string `json:"content"`
-	TemplateID     string `json:"template_id,optional"`
+	ConversationID string      `json:"conversation_id"`
+	Content        string      `json:"content"`
+	TemplateID     string      `json:"template_id,optional"`
+	Documenttype   string      `json:"documenttype,optional"`
+	References     []Reference `json:"references,optional"` // 来自 llm.api
 }
 
 type ChatResumeResponse struct {

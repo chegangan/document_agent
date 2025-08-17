@@ -41,20 +41,32 @@ func (l *ChatResumeLogic) ChatResume(req *types.ChatResumeRequest) error {
 	userID, err := ctxdata.GetUidFromCtx(l.ctx)
 	if err != nil {
 		http.Error(l.w, "Unauthorized: Invalid token or user ID missing", http.StatusUnauthorized)
-		return nil // 返回 nil 防止 go-zero 框架写入它自己的错误响应
+		return nil
 	}
 
-	// 2. 准备 RPC 请求
+	// —— 新增：把 []types.Reference 转换为 []*pb.Reference —— //
+	var pbRefs []*pb.Reference
+	if len(req.References) > 0 {
+		pbRefs = make([]*pb.Reference, 0, len(req.References))
+		for _, r := range req.References {
+			pbRefs = append(pbRefs, &pb.Reference{
+				Type:   r.Type,   // 与 llm.api / proto 对齐：string type
+				FileId: r.FileID, // 注意：proto 字段是 file_id，这里用 r.FileID
+			})
+		}
+	}
+
+	// 2. 准备 RPC 请求 —— 补上 Documenttype 与 References
 	rpcReq := &pb.ChatResumeRequest{
 		UserId:         userID,
 		ConversationId: req.ConversationID,
 		Content:        req.Content,
 		TemplateId:     req.TemplateID,
+		Documenttype:   req.Documenttype, // ✅ 新增
+		References:     pbRefs,           // ✅ 新增
 	}
 
-	// 3. 调用 RPC 层的流式方法
-	// [注意] 我们需要使用 request 的 context (l.r.Context()) 而不是 gRPC 的 context (l.ctx)，
-	// 这样当客户端断开 HTTP 连接时，可以及时取消后端的 RPC 调用。
+	// 3. 调用 RPC 层的流式方法（保持不变）
 	stream, err := l.svcCtx.LLMCenterRpc.ChatResume(l.r.Context(), rpcReq)
 	if err != nil {
 		l.Errorf("Failed to call ChatResume RPC: %v", err)
@@ -62,15 +74,12 @@ func (l *ChatResumeLogic) ChatResume(req *types.ChatResumeRequest) error {
 		return nil
 	}
 
-	// 4. 设置 SSE (Server-Sent Events) 响应头
+	// 4. 设置 SSE 响应头（保持不变）
 	l.w.Header().Set("Content-Type", "text/event-stream")
 	l.w.Header().Set("Cache-Control", "no-cache")
 	l.w.Header().Set("Connection", "keep-alive")
-	l.w.Header().Set("Access-Control-Allow-Origin", "*") // [安全注意] 生产环境请设置为你的前端域名
-
-	// 告诉 Nginx / OpenResty 不要缓冲
+	l.w.Header().Set("Access-Control-Allow-Origin", "*")
 	l.w.Header().Set("X-Accel-Buffering", "no")
-	// 某些代理看到 Content-Length 会缓存，确保没有 Content-Length
 	l.w.Header().Del("Content-Length")
 
 	flusher, ok := l.w.(http.Flusher)
@@ -80,34 +89,20 @@ func (l *ChatResumeLogic) ChatResume(req *types.ChatResumeRequest) error {
 		return nil
 	}
 
-	// 5. 循环接收 RPC 流并推送到 HTTP 客户端
+	// 5. 循环接收并推送 SSE（保持不变）
 	for {
-		// 从 gRPC 流中接收消息
 		resp, err := stream.Recv()
-
 		if err == io.EOF {
 			l.Infof("Resume stream finished for conversation %s.", req.ConversationID)
-			return nil // 正常结束
+			return nil
 		}
-
 		if err != nil {
-			// 从 gRPC 错误中解析 status
 			st, _ := status.FromError(err)
-			l.Errorf("Error receiving from resume stream forCode: %d, Message: %s",
-				st.Code(), st.Message())
-
-			// 向客户端发送一个统一的错误事件
-			errorData := map[string]interface{}{
-				"code":    st.Code(),
-				"message": st.Message(),
-			}
-			// 忽略发送错误，因为此时连接可能已经断开
-			_ = l.sendSSE("error", errorData)
-
-			return nil // 返回 nil，因为错误已经通过 SSE 推送
+			l.Errorf("Error receiving from resume stream forCode: %d, Message: %s", st.Code(), st.Message())
+			_ = l.sendSSE("error", map[string]any{"code": st.Code(), "message": st.Message()})
+			return nil
 		}
 
-		// Resume 流程只包含 message 和 end 事件
 		switch event := resp.Event.(type) {
 		case *pb.ChatResumeResponse_Message:
 			if err := l.sendSSE("message", event.Message); err != nil {
@@ -119,10 +114,9 @@ func (l *ChatResumeLogic) ChatResume(req *types.ChatResumeRequest) error {
 				l.Errorf("Failed to send end event: %v", err)
 				return nil
 			}
-			return nil // 收到 end 事件，流结束
+			return nil
 		}
 
-		// 刷新缓冲区，确保数据立即发送到客户端
 		flusher.Flush()
 	}
 }

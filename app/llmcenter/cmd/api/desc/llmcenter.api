@@ -48,6 +48,10 @@ type ChatResumeRequest {
 	Content string `json:"content"`
 	// 可选, 如果用户在此步骤中选择了某个特定模板来格式化内容。
 	TemplateID string `json:"template_id,optional"`
+	// 新增：文档类型（与 ChatCompletions 保持一致）
+	Documenttype string `json:"documenttype,optional"`
+	// 新增：附件引用（与 ChatCompletions 保持一致）
+	References []Reference `json:"references,optional"` // 来自 llm.api
 }
 
 // ChatResumeResponse 为空, 因为此接口同样使用 SSE 进行流式响应。

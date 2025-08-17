@@ -102,6 +102,9 @@ message ChatResumeRequest {
   string conversation_id = 1; // 必选: 当前会话的ID。
   string content = 2;         // 必选: 用户在前端编辑器中确认后的完整内容。
   string template_id = 3;     // 可选: 如果用户在这一步选择了模板。
+  
+  string documenttype = 5;              // 新增：续写的文档类型
+  repeated Reference references = 6;    // 新增：附件引用（图片/文档）
 }
 
 // 响应流: ChatResume 的流式响应体
