@@ -55,11 +55,28 @@ func (l *GetHistoryDataLogic) GetHistoryData(in *pb.GetHistoryDataRequest) (*pb.
 							references = append(references, &pb.FileReference{
 								FileId:   ref.FileId,
 								Filename: file.Filename,
+								Function: "file",
 							})
 						} else {
 							references = append(references, &pb.FileReference{
 								FileId:   ref.FileId,
 								Filename: "文件已过期或不存在",
+								Function: "file",
+							})
+						}
+					} else if ref.Type == "formfile" {
+						file, err := l.svcCtx.FilesModel.FindByStoredName(l.ctx, ref.FileId)
+						if err == nil {
+							references = append(references, &pb.FileReference{
+								FileId:   ref.FileId,
+								Filename: file.Filename,
+								Function: "formfile",
+							})
+						} else {
+							references = append(references, &pb.FileReference{
+								FileId:   ref.FileId,
+								Filename: "文件已过期或不存在",
+								Function: "formfile",
 							})
 						}
 					}
