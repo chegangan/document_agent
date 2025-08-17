@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"document_agent/app/llmcenter/cmd/rpc/internal/llm"
 	"document_agent/app/llmcenter/cmd/rpc/internal/svc"
@@ -30,46 +31,48 @@ func NewChatResumeLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ChatRe
 	}
 }
 
-// ChatResume 是处理中断后继续生成的核心 RPC 方法
+// ChatResume 现在改为“像正常对话一样直接继续生成”，不再走 Resume/事件ID 机制。
 func (l *ChatResumeLogic) ChatResume(in *pb.ChatResumeRequest, stream pb.LlmCenter_ChatResumeServer) error {
-	// 1. 验证会话的有效性
+	// 1) 校验会话归属
 	if err := l.validateConversation(in.UserId, in.ConversationId); err != nil {
 		return err
 	}
 
-	// 2. 从 Redis 中获取并删除中断事件ID
-	eventID, err := l.getAndDelInterruptEventID(in.ConversationId)
+	// 2) 取该会话最近的历史消息（与 ChatCompletions 一致）
+	history, err := l.getRecentHistory(in.ConversationId)
 	if err != nil {
 		return err
 	}
 
-	// 4. 构建对大模型 Resume API 的请求
-	llmReq := types.LLMResumeApiRequest{
-		EventID:   eventID,
-		EventType: "resume",
-		Content:   in.Content,
-	}
+	// 3) 构建大模型请求体（沿用与 ChatCompletions 一致的 StreamChat 请求结构）
+	llmReq := l.buildLLMRequest(in.UserId, in.ConversationId, in.Content, history)
 	reqBody, err := json.Marshal(llmReq)
 	if err != nil {
-		l.Errorf("failed to marshal llm resume request: %v :%w", err, xerr.ErrRequestParam)
+		l.Errorf("failed to marshal llm request: %v :%w", err, xerr.ErrRequestParam)
 		return err
 	}
 
-	// 5. 调用大模型 Resume API 并处理流式响应
+	// 4) 直接调用大模型 StreamChat（不再使用 Resume API）
 	xingchenClient := llm.NewXingChenClient(l.ctx, l.svcCtx)
-	assistantReply, err := xingchenClient.StreamResume(reqBody, stream)
+	assistantReply, err := xingchenClient.StreamChatForResume(reqBody, stream, in.ConversationId)
+
 	if err != nil {
-		return err // 错误已在 StreamResume 中包装
+		return err // 内部已做错误包装
 	}
 
-	// 6. 保存最终生成的完整文章
+	// 若模型没有返回任何正文，也照样结束（但不落库）
+	if assistantReply == "" {
+		return l.sendEndEvent(stream, in.ConversationId, "")
+	}
+
+	// 5) 将最终生成的完整内容保存到 documents（复用你原有的保存逻辑）
 	assistantMessageID, err := l.saveFinalDocument(in.ConversationId, assistantReply)
 	if err != nil {
-		// 记录错误，但仍然继续向客户端发送结束信号
+		// 记录错误，但不中断结束事件
 		l.Errorf("saveFinalDocument failed: %v", err)
 	}
 
-	// 7. 向客户端发送结束事件
+	// 6) 发送结束事件（带 message_id）
 	return l.sendEndEvent(stream, in.ConversationId, assistantMessageID)
 }
 
@@ -88,20 +91,53 @@ func (l *ChatResumeLogic) validateConversation(userID int64, convID string) erro
 	return nil
 }
 
-// getAndDelInterruptEventID 从 Redis 中获取中断事件ID，成功后立即删除
-func (l *ChatResumeLogic) getAndDelInterruptEventID(convID string) (string, error) {
-	redisKey := fmt.Sprintf("llm:interrupt:%s", convID)
-	eventID, err := l.svcCtx.RedisClient.Get(redisKey)
-	if eventID == "" {
-		return "", fmt.Errorf("ChatResume no interrupt event found for conv %s, maybe expired: %w",
-			convID, xerr.ErrLLMInterruptEventNotFound)
-	}
+// getRecentHistory 拉取会话历史并仅保留最近 10 条（与 ChatCompletions 的做法一致）
+func (l *ChatResumeLogic) getRecentHistory(convID string) ([]*pb.Message, error) {
+	getConversationDetailLogic := NewGetConversationDetailLogic(l.ctx, l.svcCtx)
+	resp, err := getConversationDetailLogic.GetConversationDetail(&pb.GetConversationDetailRequest{
+		ConversationId: convID,
+	})
 	if err != nil {
-		return "", fmt.Errorf("ChatResume failed to get event_id from redis: %v: %w", err, xerr.ErrDbError)
+		return nil, fmt.Errorf("getRecentHistory db message FindAllByConversationID err:%+v, conversationId:%s: %w", err, convID, xerr.ErrMessageNotFound)
 	}
-	// 获取成功后立即删除该key，防止被重复使用
-	l.svcCtx.RedisClient.Del(redisKey)
-	return eventID, nil
+	history := resp.GetHistory()
+
+	// 只取最近 10 条
+	if len(history) > 10 {
+		history = history[len(history)-10:]
+	}
+	return history, nil
+}
+
+// buildLLMRequest 与 ChatCompletions 的组装逻辑保持一致（不含图片）
+func (l *ChatResumeLogic) buildLLMRequest(userID int64, convID, prompt string, history []*pb.Message) types.LLMApiRequest {
+	// 加上开头的标识码
+	flag := l.svcCtx.Config.XingChen.FlagCode2
+	p := strings.TrimSpace(prompt)
+	if flag != "" {
+		p = flag + p
+	}
+
+	apiHistory := make([]types.LLMMessage, 0, len(history))
+	for _, msg := range history {
+		apiHistory = append(apiHistory, types.LLMMessage{
+			Role:        msg.Role,
+			ContentType: "text",
+			Content:     msg.Content,
+		})
+	}
+
+	return types.LLMApiRequest{
+		FlowID: l.svcCtx.Config.XingChen.FlowID,
+		UID:    fmt.Sprintf("%d", userID),
+		Parameters: types.LLMParameters{
+			AgentUserInput: p, // 这里是已加 FlagCode 的提示词
+			Img:            "",
+		},
+		Stream:  true,
+		ChatID:  convID,
+		History: apiHistory,
+	}
 }
 
 // saveFinalDocument 保存最终生成的完整文章
@@ -109,16 +145,10 @@ func (l *ChatResumeLogic) saveFinalDocument(conversationID, content string) (str
 	if content == "" {
 		return "", nil
 	}
-
-	// 生成唯一的 message_id
 	documentID := tool.GenerateULID()
-
-	// 插入到 documents 表
-	err := l.svcCtx.DocumentsModel.InsertDocument(l.ctx, documentID, conversationID, content)
-	if err != nil {
+	if err := l.svcCtx.DocumentsModel.InsertDocument(l.ctx, documentID, conversationID, content); err != nil {
 		return "", fmt.Errorf("saveFinalDocument db Insert to documents err:%+v: %w", err, xerr.ErrDbError)
 	}
-
 	return documentID, nil
 }
 
