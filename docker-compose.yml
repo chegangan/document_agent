@@ -98,6 +98,7 @@ services:
       - ./deploy/etc/llmcenterrpc.yaml:/app/etc/llmcenter.yaml
       - ./data/static:/app/data/static
       # 自定义中文字体（可选），容器内放在 /app/deploy/fonts
+      - ./deploy:/app/deploy 
       - ./deploy/static/fonts:/app/deploy/fonts
       - ./deploy/static/lua:/app/deploy/lua
     environment:
