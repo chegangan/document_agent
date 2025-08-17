@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"runtime"
 
 	"document_agent/app/llmcenter/cmd/rpc/internal/svc"
 	"document_agent/app/llmcenter/cmd/rpc/pb"
@@ -15,25 +14,10 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
-const (
-	// 定义一个安全的文件上传目录
-	uploadSubDir = "data/static"
-)
-
 type FileUploadLogic struct {
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 	logx.Logger
-}
-
-func getProjectRoot() string {
-	// 获取当前文件所在位置，向上追溯到 document_agent
-	_, b, _, _ := runtime.Caller(0)
-	basePath := filepath.Dir(b)
-	for i := 0; i < 6; i++ {
-		basePath = filepath.Dir(basePath)
-	}
-	return basePath
 }
 
 func NewFileUploadLogic(ctx context.Context, svcCtx *svc.ServiceContext) *FileUploadLogic {
@@ -71,8 +55,7 @@ func (l *FileUploadLogic) FileUpload(stream pb.LlmCenter_FileUploadServer) error
 		return err
 	}
 
-	projectRoot := getProjectRoot()
-	uploadDir := filepath.Join(projectRoot, uploadSubDir)
+	uploadDir := l.svcCtx.Config.Upload.BaseDir
 	savePath = filepath.Join(uploadDir, saveName)
 
 	if err := os.MkdirAll(uploadDir, 0755); err != nil {

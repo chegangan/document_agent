@@ -25,7 +25,8 @@ XingChen:
   ApiSecret: "MmVmZmY4YjhhMmQzMWUxMTllNTFiZjhj"
   ApiKey: "a08967af6fefaf656356d138b67947cf"
   UploadURL: "https://xingchen-api.xf-yun.com/workflow/v1/upload_file"
-  FlagCode: "1433"
+  FlagCode1: "1433"
+  FlagCode2: "1422"
 
 Redis:
   Host: redis:6379

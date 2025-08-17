@@ -6,49 +6,51 @@ RUN go env -w GOPROXY=https://goproxy.cn,direct && go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o llmcenter-rpc app/llmcenter/cmd/rpc/llmcenter.go
 
-# # ---- Runtime ----
-# FROM pandoc/latex:3.1-ubuntu
-# ENV DEBIAN_FRONTEND=noninteractive
-# # 切换到国内源，加快 apt
-# # RUN set -eux; \
-# #     sed -i 's|http://archive.ubuntu.com/ubuntu/|http://mirrors.tuna.tsinghua.edu.cn/ubuntu/|g; s|http://security.ubuntu.com/ubuntu|http://mirrors.tuna.tsinghua.edu.cn/ubuntu|g' /etc/apt/sources.list; \
-# #     apt-get update; \
-# #     apt-get install -y --no-install-recommends \
-# #     texlive-lang-chinese fonts-noto-cjk fontconfig tzdata ca-certificates; \
-# #     rm -rf /var/lib/apt/lists/*
-
 # ---- Runtime Stage ----
 FROM ubuntu:22.04
 
 # 设置为非交互模式，避免安装过程中断
 ENV DEBIAN_FRONTEND=noninteractive
 
-# 安装 pandoc, XeTeX 引擎, 中文宏包, 中文字体及其他必要工具
-# 使用清华大学的镜像源加速
-# 安装 pandoc, XeTeX 引擎, 中文宏包, 中文字体及其他必要工具
-# 使用清华大学的镜像源加速
+# 1. 安装最基础的系统依赖，这一层变动频率最低
 RUN sed -i 's|http://archive.ubuntu.com/ubuntu/|http://mirrors.tuna.tsinghua.edu.cn/ubuntu/|g' /etc/apt/sources.list && \
     apt-get update && \
+    apt-get install -y --no-install-recommends \
+    ca-certificates \
+    tzdata \
+    wget \
+    fontconfig && \
+    rm -rf /var/lib/apt/lists/*
+
+# 2. 安装 pandoc 相关依赖，这是一个独立的、可缓存的大图层
+RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     pandoc \
     texlive-xetex \
     texlive-lang-chinese \
     texlive-fonts-recommended \
     lmodern \
-    fonts-noto-cjk \
-    fontconfig \
-    ca-certificates \
-    tzdata && \
+    fonts-noto-cjk && \
     texhash && \
+    rm -rf /var/lib/apt/lists/*
+
+# 3. 安装 OCR 相关依赖并下载数据模型，这是一个独立的 OCR 图层
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    tesseract-ocr \
+    tesseract-ocr-chi-sim \
+    tesseract-ocr-eng && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-COPY --from=builder /app/llmcenter-rpc .
-# ...existing code...
-RUN mkdir -p /app/etc
+# 4. 拷贝配置文件和静态资源。这些文件变动频率低于应用代码
+RUN mkdir -p /app/etc /app/data/static
 COPY deploy/etc/llmcenterrpc.yaml /app/etc/llmcenter.yaml
 COPY app/llmcenter/cmd/data/static /app/data/static
+
+# 5. 最后拷贝编译产物，这是变动最频繁的部分
+COPY --from=builder /app/llmcenter-rpc .
 
 EXPOSE 8003
 

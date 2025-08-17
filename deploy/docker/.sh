@@ -4,6 +4,11 @@ docker save -o document-agent-usercenter-api.tar document-agent/usercenter-api
 docker save -o document-agent-llmcenter-rpc.tar document-agent/llmcenter-rpc
 docker save -o document-agent-llmcenter-api.tar document-agent/llmcenter-api
 
+rm document-agent-llmcenter-rpc.tar
+rm -rf ./deploy
+rm docker-compose.yml
+
+
 # 2. 单独上传 docker-compose.yml
 scp -i ~/.ssh/id_rsa ~/myspace/code/golang/document_agent/docker-compose.yml tzb@10.16.23.106:~/back/
 
@@ -32,6 +37,8 @@ docker rmi -f \
 echo "Remaining document-agent images:"
 docker images | grep '^document-agent/' || echo "none"
 EOF
+
+docker exec -it llmcenter-rpc /bin/bash
 
 docker load -i document-agent-usercenter-api.tar
 docker load -i document-agent-usercenter-rpc.tar
