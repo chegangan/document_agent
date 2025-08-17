@@ -36,11 +36,11 @@ RUN apt-get update && \
 
 # 3. 安装 OCR 相关依赖并下载数据模型，这是一个独立的 OCR 图层
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends tesseract-ocr && \
-    rm -rf /var/lib/apt/lists/* && \
-    mkdir -p /usr/share/tessdata && \
-    wget -q -O /usr/share/tessdata/chi_sim.traineddata https://github.com/tesseract-ocr/tessdata/raw/main/chi_sim.traineddata && \
-    wget -q -O /usr/share/tessdata/eng.traineddata     https://github.com/tesseract-ocr/tessdata/raw/main/eng.traineddata
+    apt-get install -y --no-install-recommends \
+    tesseract-ocr \
+    tesseract-ocr-chi-sim \
+    tesseract-ocr-eng && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

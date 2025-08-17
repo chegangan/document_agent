@@ -19,7 +19,7 @@ DB:
   DataSource: llmcenter:G7v@pL2#xQ9!sT8z@tcp(mysql:3306)/document_agent_llmcenter?charset=utf8mb4&parseTime=true&loc=Asia%2FShanghai
 
 XingChen:
-  FlowID: "7362440906314137601"
+  FlowID: "7360198602174889986"
   ApiURL: "https://xingchen-api.xf-yun.com/workflow/v1/chat/completions"
   ApiResumeURL: "https://xingchen-api.xf-yun.com/workflow/v1/resume"
   ApiSecret: "MmVmZmY4YjhhMmQzMWUxMTllNTFiZjhj"
