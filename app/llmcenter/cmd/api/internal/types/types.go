@@ -74,6 +74,7 @@ type EmptyResp struct {
 type FileReference struct {
 	FileID   string `json:"file_id"`  // stored_name
 	Filename string `json:"filename"` // 用户上传的原始文件名
+	Function string `json:"function"` // 文件功能，例如 "file" | "formfile"
 }
 
 type FileUploadRequest struct {

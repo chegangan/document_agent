@@ -42,6 +42,7 @@ func (l *GetHistoryDataLogic) GetHistoryData(req *types.GetHistoryDataRequest) (
 			refs = append(refs, types.FileReference{
 				FileID:   r.FileId,
 				Filename: r.Filename,
+				Function: r.Function,
 			})
 		}
 

@@ -181,6 +181,7 @@ message HistoryData {
 message FileReference {
   string file_id = 1;
   string filename = 2;
+  string function = 3;
 }
 
 message EditDocumentRequest {

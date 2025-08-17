@@ -938,6 +938,7 @@ type FileReference struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	FileId        string                 `protobuf:"bytes,1,opt,name=file_id,json=fileId,proto3" json:"file_id,omitempty"`
 	Filename      string                 `protobuf:"bytes,2,opt,name=filename,proto3" json:"filename,omitempty"`
+	Function      string                 `protobuf:"bytes,3,opt,name=function,proto3" json:"function,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -982,6 +983,13 @@ func (x *FileReference) GetFileId() string {
 func (x *FileReference) GetFilename() string {
 	if x != nil {
 		return x.Filename
+	}
+	return ""
+}
+
+func (x *FileReference) GetFunction() string {
+	if x != nil {
+		return x.Function
 	}
 	return ""
 }
@@ -2178,10 +2186,11 @@ const file_llmcenter_proto_rawDesc = "" +
 	"created_at\x18\x05 \x01(\tR\tcreatedAt\x128\n" +
 	"\n" +
 	"references\x18\x06 \x03(\v2\x18.llmcenter.FileReferenceR\n" +
-	"references\"D\n" +
+	"references\"`\n" +
 	"\rFileReference\x12\x17\n" +
 	"\afile_id\x18\x01 \x01(\tR\x06fileId\x12\x1a\n" +
-	"\bfilename\x18\x02 \x01(\tR\bfilename\"\xe8\x01\n" +
+	"\bfilename\x18\x02 \x01(\tR\bfilename\x12\x1a\n" +
+	"\bfunction\x18\x03 \x01(\tR\bfunction\"\xe8\x01\n" +
 	"\x13EditDocumentRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12'\n" +
 	"\x0fconversation_id\x18\x02 \x01(\tR\x0econversationId\x12\x1d\n" +
