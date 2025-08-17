@@ -99,13 +99,13 @@ func (c *XingChenClient) StreamChat(reqBody []byte, stream pb.LlmCenter_ChatComp
 
 	// 定义 Chat 流程的事件处理器
 	handler := func(apiResp *types.LLMApiResponse) (bool, error) {
-		// 检查中断事件
-		if apiResp.EventData != nil && apiResp.EventData.EventType == "interrupt" {
-			if err := c.handleInterruptEvent(apiResp, stream, conversationID); err != nil {
-				return true, err // 中断处理失败，停止流
-			}
-			return true, nil // 中断后，当前流式交互结束
-		}
+		// // 检查中断事件
+		// if apiResp.EventData != nil && apiResp.EventData.EventType == "interrupt" {
+		// 	if err := c.handleInterruptEvent(apiResp, stream, conversationID); err != nil {
+		// 		return true, err // 中断处理失败，停止流
+		// 	}
+		// 	return true, nil // 中断后，当前流式交互结束
+		// }
 
 		// 发送消息块
 		if len(apiResp.Choices) > 0 && apiResp.Choices[0].Delta.Content != "" {

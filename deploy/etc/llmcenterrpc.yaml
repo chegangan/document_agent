@@ -19,13 +19,14 @@ DB:
   DataSource: llmcenter:G7v@pL2#xQ9!sT8z@tcp(mysql:3306)/document_agent_llmcenter?charset=utf8mb4&parseTime=true&loc=Asia%2FShanghai
 
 XingChen:
-  FlowID: "7362402714479288322"
+  FlowID: "7362440906314137601"
   ApiURL: "https://xingchen-api.xf-yun.com/workflow/v1/chat/completions"
   ApiResumeURL: "https://xingchen-api.xf-yun.com/workflow/v1/resume"
   ApiSecret: "MmVmZmY4YjhhMmQzMWUxMTllNTFiZjhj"
   ApiKey: "a08967af6fefaf656356d138b67947cf"
   UploadURL: "https://xingchen-api.xf-yun.com/workflow/v1/upload_file"
-  FlagCode: "1433"
+  FlagCode1: "1433"
+  FlagCode2: "1422"
 
 Redis:
   Host: redis:6379
