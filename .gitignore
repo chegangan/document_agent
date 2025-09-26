@@ -20,3 +20,5 @@ data/*
 *.tar
 
 *.tar.gz
+*.sh
+

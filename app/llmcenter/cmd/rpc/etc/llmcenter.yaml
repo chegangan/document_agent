@@ -36,7 +36,7 @@ Redis:
   Key: llmcenter:redis
   
 Upload:
-  BaseDir: D:/vsproject/document_agent/data/static
+  BaseDir: /home/chegan/myspace/code/golang/document_agent/data/static
 
 LlmApiClient:
   Timeout: 200  # s
@@ -46,11 +46,11 @@ LlmApiClient:
   DisableCompression: true
 
 Font:
-  Path: "D:/vsproject/document_agent/deploy/static/fonts"
+  Path: "/home/chegan/myspace/code/golang/document_agent/deploy/static/fonts"
 
 LuaFilters:
-  Align: "D:/vsproject/document_agent/deploy/static/lua/align.lua"
-  Gov:   "D:/vsproject/document_agent/deploy/static/lua/gov.lua"
+  Align: "/home/chegan/myspace/code/golang/document_agent/deploy/static/lua/align.lua"
+  Gov:   "/home/chegan/myspace/code/golang/document_agent/deploy/static/lua/gov.lua"
 
 Download:
   BaseURL: "http://127.0.0.1:8010/llmcenter/v1/public/file"

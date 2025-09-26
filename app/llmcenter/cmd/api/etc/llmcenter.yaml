@@ -36,11 +36,11 @@
     DataSource: llmcenter:G7v@pL2#xQ9!sT8z@tcp(localhost:3306)/document_agent_llmcenter?charset=utf8mb4&parseTime=true&loc=Asia%2FShanghai
 
   Upload:
-    BaseDir: D:/vsproject/document_agent/data/static
+    BaseDir: /home/chegan/myspace/code/golang/document_agent/data/static
 
   FileCleaner:
     Enable: true
-    Dir: "D:/vsproject/document_agent/data/static"      # 要清理的目录
+    Dir: "/home/chegan/myspace/code/golang/document_agent/data/static"      # 要清理的目录
     RetentionDays: 1                                    # 保留天数，早于此的删
     IntervalMinutes: 60                                 # 多久执行一次
     MaxSizeMB: 0                                        # 0 不限制，>0 则超过大小也删

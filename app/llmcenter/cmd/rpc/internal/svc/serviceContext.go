@@ -2,6 +2,7 @@ package svc
 
 import (
 	"document_agent/app/llmcenter/cmd/rpc/internal/config"
+	"document_agent/app/llmcenter/cmd/rpc/internal/repository"
 	"document_agent/app/llmcenter/model"
 	"net/http"
 	"time"
@@ -17,22 +18,25 @@ type ServiceContext struct {
 	FilesModel        model.FilesModel
 	DocumentsModel    model.DocumentsModel
 	HistoryDatasModel model.HistorydatasModel
-	LlmApiClient      *http.Client // <--- 新增：用于调用 LLM API 的 HTTP 客户端
-	RedisClient       *redis.Redis // 2. 添加 RedisClient 字段
+	LlmApiClient      *http.Client                   // <--- 新增：用于调用 LLM API 的 HTTP 客户端
+	RedisClient       *redis.Redis                   // 2. 添加 RedisClient 字段
+	DocRepo           *repository.DocumentRepository // 文档仓库,用于带缓存的处理最终文档
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
 
 	sqlConn := sqlx.NewMysql(c.DB.DataSource)
+	documentsModel := model.NewDocumentsModel(sqlConn)
+	redisClient := redis.MustNewRedis(c.Redis.RedisConf) // 初始化 Redis 客户端
 
 	return &ServiceContext{
 		Config:            c,
 		ConversationModel: model.NewConversationsModel(sqlConn),
 		MessageModel:      model.NewMessagesModel(sqlConn),
 		FilesModel:        model.NewFilesModel(sqlConn),
-		DocumentsModel:    model.NewDocumentsModel(sqlConn),
+		DocumentsModel:    documentsModel,
 		HistoryDatasModel: model.NewHistorydatasModel(sqlConn),
-		RedisClient:       redis.MustNewRedis(c.Redis.RedisConf), // 初始化 Redis 客户端
+		RedisClient:       redisClient,
 		LlmApiClient: &http.Client{
 			// 设置一个总的请求超时，防止请求永远挂起。
 			// 注意：对于流式请求，这个超时需要足够长。
@@ -44,5 +48,6 @@ func NewServiceContext(c config.Config) *ServiceContext {
 				DisableCompression:  c.LlmApiClient.DisableCompression,
 			},
 		},
+		DocRepo: repository.NewDocumentRepository(documentsModel, redisClient),
 	}
 }
