@@ -4,7 +4,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 CREATE DATABASE IF NOT EXISTS `document_agent_usercenter`;
 
 -- 创建一个名为 'usercenter' 的用户，并设置一个强密码。
-CREATE USER 'usercenter'@'%' IDENTIFIED BY 'vG7#pL9@xQ2!sT5z';
+CREATE USER 'usercenter'@'%' IDENTIFIED BY '';
 -- 授予该用户对 'document_agent_usercenter' 数据库的全部权限。
 GRANT ALL PRIVILEGES ON `document_agent_usercenter`.* TO 'usercenter'@'%';
 -- 刷新权限，确保立即生效。

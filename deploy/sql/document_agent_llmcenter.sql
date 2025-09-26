@@ -12,7 +12,7 @@ CREATE DATABASE IF NOT EXISTS `document_agent_llmcenter` DEFAULT CHARACTER SET u
 
 -- 创建一个名为 'llmcenter' 的新用户，并为其设置一个强密码。
 -- 出于安全考虑，请在生产环境中替换为更复杂的密码。
-CREATE USER 'llmcenter'@'%' IDENTIFIED BY 'G7v@pL2#xQ9!sT8z';
+CREATE USER 'llmcenter'@'%' IDENTIFIED BY '';
 
 -- 授予 'llmcenter' 用户对 'document_agent_llmcenter' 数据库的全部权限。
 GRANT ALL PRIVILEGES ON `document_agent_llmcenter`.* TO 'llmcenter'@'%';
