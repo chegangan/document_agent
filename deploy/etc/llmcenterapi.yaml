@@ -14,7 +14,7 @@ Log:
 
 #jwtAuth
 Auth:
-  AccessSecret: I8qLdnSA6N66rdYzBkZE5KjjK1M2keM9EzxVL97533g=
+  AccessSecret: 
   accessExpire: 3600
 
 Etcd:
@@ -32,8 +32,7 @@ LlmCenterRpcConf:
   Timeout: 180000 # 毫秒, 180000ms = 3 分钟
 
 DB:
-  DataSource: llmcenter:G7v@pL2#xQ9!sT8z@tcp(mysql:3306)/document_agent_llmcenter?charset=utf8mb4&parseTime=true&loc=Asia%2FShanghai
-
+  DataSource: 
 Upload:
   BaseDir: /app/data/static
 
@@ -47,4 +46,4 @@ FileCleaner:
   LockKey: "/locks/filecleaner"
 
 PublicDownload:
-  SignKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3ODQ1MzYzMTAsImlhdCI6MTc1MzAwMDMxMCwiand0VXNlcklkIjoyfQ.WFOrZn8VS6JozEf72ihiLUSGms9awjKtVeMwAdl6SjM"  # 和 RPC 一致
+  SignKey: ""  # 和 RPC 一致

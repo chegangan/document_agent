@@ -16,17 +16,17 @@ Etcd:
   Key: llmcenter.rpc
 
 DB:
-  DataSource: llmcenter:G7v@pL2#xQ9!sT8z@tcp(mysql:3306)/document_agent_llmcenter?charset=utf8mb4&parseTime=true&loc=Asia%2FShanghai
+  DataSource: 
 
 XingChen:
-  FlowID: "7360198602174889986"
-  ApiURL: "https://xingchen-api.xf-yun.com/workflow/v1/chat/completions"
-  ApiResumeURL: "https://xingchen-api.xf-yun.com/workflow/v1/resume"
-  ApiSecret: "MmVmZmY4YjhhMmQzMWUxMTllNTFiZjhj"
-  ApiKey: "a08967af6fefaf656356d138b67947cf"
-  UploadURL: "https://xingchen-api.xf-yun.com/workflow/v1/upload_file"
-  FlagCode1: "1433"
-  FlagCode2: "1422"
+  FlowID: ""
+  ApiURL: ""
+  ApiResumeURL: ""
+  ApiSecret: ""
+  ApiKey: ""
+  UploadURL: ""
+  FlagCode1: ""
+  FlagCode2: ""
 
 Redis:
   Host: redis:6379
@@ -53,8 +53,8 @@ LuaFilters:
   Gov:   "/app/deploy/lua/gov.lua"
 
 Download:
-  BaseURL: "http://47.98.215.181:8010/llmcenter/v1/public/file"
+  BaseURL: ""
   # 与 API 共享的签名密钥（两边保持一致）
-  SignKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3ODQ1MzYzMTAsImlhdCI6MTc1MzAwMDMxMCwiand0VXNlcklkIjoyfQ.WFOrZn8VS6JozEf72ihiLUSGms9awjKtVeMwAdl6SjM"
+  SignKey: ""
   # 链接有效期（秒）
   ExpireSeconds: 600

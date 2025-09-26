@@ -3,14 +3,19 @@ package logic
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 
+	"document_agent/app/llmcenter/cmd/rpc/internal/llm"
 	"document_agent/app/llmcenter/cmd/rpc/internal/svc"
 	"document_agent/app/llmcenter/cmd/rpc/pb"
+	"document_agent/app/llmcenter/cmd/rpc/types"
 	"document_agent/app/llmcenter/model"
 	"document_agent/pkg/tool"
+	"document_agent/pkg/xerr"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/stores/sqlc"
 )
 
 type EditDocumentLogic struct {
@@ -30,47 +35,47 @@ func NewEditDocumentLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Edit
 func (l *EditDocumentLogic) EditDocument(in *pb.EditDocumentRequest, stream pb.LlmCenter_EditDocumentServer) error {
 	assistantMessageID := tool.GenerateULID()
 
-	// // 这个在带缓存的版本
-	// // doc, err := l.svcCtx.DocRepo.FindDocument(l.ctx, in.MessageId)
+	// 这个在带缓存的版本
+	doc, err := l.svcCtx.DocRepo.FindDocument(l.ctx, in.MessageId)
 	// _, err := l.svcCtx.DocRepo.FindDocument(l.ctx, in.MessageId)
-	// if err != nil {
-	// 	if err == sqlc.ErrNotFound {
-	// 		return fmt.Errorf("document not found with id %s: %w", in.MessageId, err)
-	// 	}
-	// 	return fmt.Errorf("failed to find document: %w", err)
-	// }
-
-	// 这个是不带缓存的版本
-	// doc, err := l.svcCtx.DocumentsModel.FindOne(l.ctx, in.MessageId)
-	_, err := l.svcCtx.DocumentsModel.FindOne(l.ctx, in.MessageId)
 	if err != nil {
-		return fmt.Errorf("document not found: %w", err)
+		if err == sqlc.ErrNotFound {
+			return fmt.Errorf("document not found with id %s: %w", in.MessageId, err)
+		}
+		return fmt.Errorf("failed to find document: %w", err)
 	}
 
-	// // 2. Construct prompt and call LLM (same as before)
-	// prompt := fmt.Sprintf("修改：请根据以下提示修改文档内容：\n\n原文：\n%s\n\n修改提示：%s", doc.Content, in.Prompt)
-
-	// llmReq := types.LLMApiRequest{
-	// 	FlowID: l.svcCtx.Config.XingChen.FlowID,
-	// 	UID:    fmt.Sprintf("%d", in.UserId),
-	// 	Parameters: types.LLMParameters{
-	// 		AgentUserInput: prompt,
-	// 	},
-	// 	Stream: true,
-	// }
-
-	// reqBody, err := json.Marshal(llmReq)
+	// // 这个是不带缓存的版本
+	// doc, err := l.svcCtx.DocumentsModel.FindOne(l.ctx, in.MessageId)
+	// // _, err := l.svcCtx.DocumentsModel.FindOne(l.ctx, in.MessageId)
 	// if err != nil {
-	// 	return xerr.ErrRequestParam
+	// 	return fmt.Errorf("document not found: %w", err)
 	// }
 
-	// client := llm.NewXingChenClient(l.ctx, l.svcCtx)
-	// result, err := client.StreamChatForEdit(reqBody, stream, in.ConversationId)
-	// if err != nil {
-	// 	return err
-	// }
+	// 2. Construct prompt and call LLM (same as before)
+	prompt := fmt.Sprintf("修改：请根据以下提示修改文档内容：\n\n原文：\n%s\n\n修改提示：%s", doc.Content, in.Prompt)
 
-	result := "This is a mocked LLM result."
+	llmReq := types.LLMApiRequest{
+		FlowID: l.svcCtx.Config.XingChen.FlowID,
+		UID:    fmt.Sprintf("%d", in.UserId),
+		Parameters: types.LLMParameters{
+			AgentUserInput: prompt,
+		},
+		Stream: true,
+	}
+
+	reqBody, err := json.Marshal(llmReq)
+	if err != nil {
+		return xerr.ErrRequestParam
+	}
+
+	client := llm.NewXingChenClient(l.ctx, l.svcCtx)
+	result, err := client.StreamChatForEdit(reqBody, stream, in.ConversationId)
+	if err != nil {
+		return err
+	}
+
+	// result := "This is a mocked LLM result."
 
 	// 3. Save user and assistant messages (same as before)
 	userMessageID := tool.GenerateULID()

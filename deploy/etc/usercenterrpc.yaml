@@ -14,8 +14,8 @@ Etcd:
   
 #jwtAuth
 JwtAuth:
-  AccessSecret: I8qLdnSA6N66rdYzBkZE5KjjK1M2keM9EzxVL97533g=
+  AccessSecret: 
   AccessExpire: 31536000
 
 DB:
-  DataSource: usercenter:vG7#pL9@xQ2!sT5z@tcp(mysql:3306)/document_agent_usercenter?charset=utf8mb4&parseTime=true&loc=Asia%2FShanghai
+  DataSource: 
